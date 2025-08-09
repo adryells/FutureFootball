@@ -41,7 +41,7 @@ public class StandingService {
         Standing home = standingsMap.get(match.getHomeTeamId());
         Standing away = standingsMap.get(match.getAwayTeamId());
 
-        if (home == null || away == null) return; // segurança
+        if (home == null || away == null) return;
 
         int homeGoals = match.getHomeScore();
         int awayGoals = match.getAwayScore();
