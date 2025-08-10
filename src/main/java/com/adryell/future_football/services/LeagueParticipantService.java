@@ -1,37 +1,50 @@
 package com.adryell.future_football.services;
 
+import com.adryell.future_football.models.League;
 import com.adryell.future_football.models.LeagueParticipant;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.core.io.ClassPathResource;
+import com.adryell.future_football.models.Team;
+import com.adryell.future_football.repositories.LeagueParticipantRepository;
+import com.adryell.future_football.repositories.LeagueRepository;
 import org.springframework.stereotype.Service;
 
-import java.io.InputStream;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Service
 public class LeagueParticipantService {
 
-    private static final String PARTICIPANTS_FILE_PATH = "data/participants.json";
+    private final LeagueParticipantRepository participantRepository;
+    private final LeagueRepository leagueRepository;
+
+    public LeagueParticipantService(LeagueParticipantRepository participantRepository, LeagueRepository leagueRepository) {
+        this.participantRepository = participantRepository;
+        this.leagueRepository = leagueRepository;
+    }
 
     public List<LeagueParticipant> findByLeagueId(int leagueId) {
-        try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            InputStream is = new ClassPathResource(PARTICIPANTS_FILE_PATH).getInputStream();
+        return participantRepository.findByLeagueId(leagueId);
+    }
 
-            List<LeagueParticipant> all = objectMapper.readValue(
-                    is,
-                    new TypeReference<List<LeagueParticipant>>() {}
-            );
+    public boolean removeTeamFromLeague(int leagueId, int teamId) {
+        if (!participantRepository.existsByLeagueIdAndTeamId(leagueId, teamId)) {
+            return false;
+        }
+        participantRepository.deleteByLeagueIdAndTeamId(leagueId, teamId);
+        return true;
+    }
 
-            return all.stream()
-                    .filter(p -> p.getLeagueId() == leagueId)
-                    .collect(Collectors.toList());
+    public void addParticipants(int leagueId, List<Team> teams) {
+        Optional<League> league = leagueRepository.findById(leagueId);
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            return List.of();
+        if (league.isEmpty()){
+            return;
+        }
+
+        for (Team team : teams) {
+            LeagueParticipant participant = new LeagueParticipant();
+            participant.setLeague(league.get());
+            participant.setTeam(team);
+            participantRepository.save(participant);
         }
     }
 }

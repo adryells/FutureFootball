@@ -1,35 +1,33 @@
 package com.adryell.future_football.services;
 
+import com.adryell.future_football.dto.CreateTeamRequestDTO;
 import com.adryell.future_football.models.Team;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.core.io.ClassPathResource;
+import com.adryell.future_football.repositories.TeamRepository;
 import org.springframework.stereotype.Service;
 
-import java.io.InputStream;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class TeamService {
 
-    private static final String TEAMS_FILE_PATH = "data/teams.json";
+    private final TeamRepository teamRepository;
+
+    public TeamService(TeamRepository teamRepository) {
+        this.teamRepository = teamRepository;
+    }
 
     public List<Team> findAll() {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            InputStream is = new ClassPathResource(TEAMS_FILE_PATH).getInputStream();
-
-            return mapper.readValue(is, new TypeReference<List<Team>>() {});
-        } catch (Exception e) {
-            e.printStackTrace();
-            return List.of();
-        }
+        return teamRepository.findAll();
     }
 
     public Team findById(int id) {
-        return findAll().stream()
-                .filter(team -> team.getId() == id)
-                .findFirst()
-                .orElse(null);
+        return teamRepository.findById(id).orElse(null);
+    }
+
+    public boolean saveTeam(CreateTeamRequestDTO teamData) {
+        Team team = new Team(teamData.getName());
+        teamRepository.save(team);
+        return true;
     }
 }

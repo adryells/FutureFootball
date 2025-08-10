@@ -16,9 +16,9 @@ public class StandingService {
 
         for (LeagueParticipant participant : participants) {
             Standing s = new Standing();
-            s.setTeamId(participant.getTeamId());
-            s.setTeamName(participant.getTeamName());
-            standingsMap.put(participant.getTeamId(), s);
+            s.setTeamId(participant.getTeam().getId());
+            s.setTeamName(participant.getTeam().getName());
+            standingsMap.put(participant.getTeam().getId(), s);
         }
 
         for (Round round : rounds) {
@@ -38,8 +38,10 @@ public class StandingService {
     }
 
     private void processMatch(Match match, Map<Integer, Standing> standingsMap) {
-        Standing home = standingsMap.get(match.getHomeTeamId());
-        Standing away = standingsMap.get(match.getAwayTeamId());
+        if (!match.isPlayed()) return;
+
+        Standing home = standingsMap.get(match.getHomeTeam().getId());
+        Standing away = standingsMap.get(match.getAwayTeam().getId());
 
         if (home == null || away == null) return;
 

@@ -11,6 +11,8 @@ public class Standing {
     private int goalsFor;
     private int goalsAgainst;
 
+    public Standing(){}
+
     public int getGoalDifference() {
         return goalsFor - goalsAgainst;
     }

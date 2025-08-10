@@ -1,31 +1,39 @@
 package com.adryell.future_football.models;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "league_participants")
 public class LeagueParticipant {
-    private int teamId;
-    private int leagueId;
-    private String teamName;
 
-    public int getLeagueId() {
-        return leagueId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    @ManyToOne
+    @JoinColumn(name = "league_id")
+    @JsonBackReference
+    private League league;
+
+    @ManyToOne
+    @JoinColumn(name = "team_id")
+    @JsonManagedReference
+    private Team team;
+
+    public LeagueParticipant() {}
+
+    public LeagueParticipant(League league, Team team) {
+        this.league = league;
+        this.team = team;
     }
 
-    public String getTeamName() {
-        return teamName;
-    }
+    public int getId() { return id; }
+    public League getLeague() { return league; }
+    public Team getTeam() { return team; }
 
-    public int getTeamId() {
-        return teamId;
-    }
-
-    public void setLeagueId(int leagueId) {
-        this.leagueId = leagueId;
-    }
-
-    public void setTeamName(String teamName) {
-        this.teamName = teamName;
-    }
-
-    public void setTeamId(int teamId) {
-        this.teamId = teamId;
-    }
+    public void setId(int id) { this.id = id; }
+    public void setLeague(League league) { this.league = league; }
+    public void setTeam(Team team) { this.team = team; }
 }

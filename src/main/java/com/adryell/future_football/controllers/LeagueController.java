@@ -1,14 +1,8 @@
 package com.adryell.future_football.controllers;
 
 import com.adryell.future_football.dto.ScoreUpdateDTO;
-import com.adryell.future_football.models.League;
-import com.adryell.future_football.models.LeagueParticipant;
-import com.adryell.future_football.models.Round;
-import com.adryell.future_football.models.Standing;
-import com.adryell.future_football.services.LeagueParticipantService;
-import com.adryell.future_football.services.LeagueService;
-import com.adryell.future_football.services.RoundService;
-import com.adryell.future_football.services.StandingService;
+import com.adryell.future_football.models.*;
+import com.adryell.future_football.services.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,17 +16,20 @@ public class LeagueController {
     private final LeagueParticipantService participantService;
     private final RoundService roundService;
     private final StandingService standingsService;
+    private final TeamService teamService;
 
     public LeagueController(
             LeagueService leagueService,
             LeagueParticipantService participantService,
             RoundService roundService,
-            StandingService standingsService
+            StandingService standingsService,
+            TeamService teamService
     ) {
         this.leagueService = leagueService;
         this.participantService = participantService;
         this.roundService = roundService;
         this.standingsService = standingsService;
+        this.teamService = teamService;
     }
 
     @GetMapping
@@ -94,4 +91,39 @@ public class LeagueController {
         List<Standing> standings = standingsService.calculateStandings(rounds, participants);
         return ResponseEntity.ok(standings);
     }
+
+    @PostMapping
+    public ResponseEntity<String> createLeague(@RequestParam String name, @RequestParam int year, @RequestBody List<Integer> teamIds) {
+        if (teamIds.size() < 3) {
+            return ResponseEntity.badRequest().body("League must have a minimum of 3 teams.");
+        }
+
+        List<Team> teams = teamService.findAll().stream()
+                .filter(t -> teamIds.contains(t.getId()))
+                .toList();
+
+        if (teams.size() != teamIds.size()) {
+            return ResponseEntity.badRequest().body("Some informed teamId not exists.");
+        }
+
+        League league = leagueService.createLeague(name, year);
+        if (league == null) {
+            return ResponseEntity.badRequest().body("League Already exists.");
+        }
+
+        participantService.addParticipants(league.getId(), teams);
+        roundService.generateRounds(league.getId(), teams);
+
+        return ResponseEntity.ok("League created successfully!");
+    }
+
+    @DeleteMapping("/{leagueId}/teams/{teamId}")
+    public ResponseEntity<String> removeTeamFromLeague(@PathVariable int leagueId, @PathVariable int teamId) {
+        boolean removed = participantService.removeTeamFromLeague(leagueId, teamId);
+        if (!removed) {
+            return ResponseEntity.badRequest().body("Team not found on league.");
+        }
+        return ResponseEntity.ok("Team removed successfully from league.");
+    }
+
 }
