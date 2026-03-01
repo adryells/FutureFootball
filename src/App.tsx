@@ -5,11 +5,13 @@ import Universos from './pages/Universos';
 import UniversoDetail from './pages/UniversoDetail';
 import TemporadaDetail from './pages/TemporadaDetail';
 import CompeticaoDetail from './pages/CompeticaoDetail';
+import { ToastProvider } from './components/Toast';
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
+    <ToastProvider>
+      <BrowserRouter>
+        <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/clubes" element={<Clubes />} />
         <Route path="/universos" element={<Universos />} />
@@ -19,6 +21,7 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
+    </ToastProvider>
   );
 }
 

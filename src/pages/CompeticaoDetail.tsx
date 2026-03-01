@@ -111,6 +111,14 @@ export default function CompeticaoDetail() {
     loadData();
   };
 
+  const checkTemporadaFinalizada = async (temporadaId: number) => {
+    // se todas as competições da temporada estiverem finalizadas, marca a temporada
+    const comps = await db.competicoes.where('temporadaId').equals(temporadaId).toArray();
+    if (comps.length > 0 && comps.every(c => c.status === 'finalizada')) {
+      await db.temporadas.update(temporadaId, { finalizada: true });
+    }
+  };
+
   const verificarFinalizacao = async () => {
     if (!competicao) return;
     
@@ -126,6 +134,8 @@ export default function CompeticaoDetail() {
         status: 'finalizada'
       });
       setCompeticao({ ...competicao, status: 'finalizada' });
+      // ao finalizar competição, verifique se temporada também deve ser finalizada
+      await checkTemporadaFinalizada(competicao.temporadaId);
     }
   };
 
@@ -310,6 +320,8 @@ export default function CompeticaoDetail() {
                       await db.competicoes.update(competicao.id!, {
                         status: 'finalizada'
                       });
+                      // after finalizing competition, check if season should be marked finalized
+                      await checkTemporadaFinalizada(competicao.temporadaId);
                       await loadData();
                     }
                   }}

@@ -5,6 +5,7 @@ import { db, Universo } from '../db/database';
 
 export default function Universos() {
   const [universos, setUniversos] = useState<Universo[]>([]);
+  const [filter, setFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingUniverso, setEditingUniverso] = useState<Universo | null>(null);
   const [formData, setFormData] = useState({
@@ -93,8 +94,20 @@ export default function Universos() {
 
         <h1 className="text-3xl font-bold text-gray-900 mb-6">Universos</h1>
 
+        <div className="mb-4">
+          <input
+            type="text"
+            placeholder="Buscar universos..."
+            value={filter}
+            onChange={e => setFilter(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {universos.map(universo => (
+          {universos
+            .filter(u => u.nome.toLowerCase().includes(filter.toLowerCase()))
+            .map(universo => (
             <div
               key={universo.id}
               className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"

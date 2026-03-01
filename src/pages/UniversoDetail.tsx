@@ -9,6 +9,12 @@ export default function UniversoDetail() {
   const [universo, setUniverso] = useState<Universo | null>(null);
   const [temporadas, setTemporadas] = useState<Temporada[]>([]);
   const [divisoes, setDivisoes] = useState<EstruturaDivisao[]>([]);
+  const [stats, setStats] = useState<{ totalClubs: number; avgForca: number; totalCompeticoes: number; competicoesFinalizadas: number }>({
+    totalClubs: 0,
+    avgForca: 0,
+    totalCompeticoes: 0,
+    competicoesFinalizadas: 0
+  });
   const [showModal, setShowModal] = useState(false);
   const [showDivisoesModal, setShowDivisoesModal] = useState(false);
   const [editingTemporada, setEditingTemporada] = useState<Temporada | null>(null);
@@ -17,6 +23,7 @@ export default function UniversoDetail() {
     ano: new Date().getFullYear(),
     ordem: 1
   });
+  const [filter, setFilter] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -33,6 +40,14 @@ export default function UniversoDetail() {
       .where('universoId')
       .equals(Number(id))
       .sortBy('ordem');
+    // ensure flag is correct: if all competitions of season finalizadas, mark season
+    for (const temp of temporadasData) {
+      const comps = await db.competicoes.where('temporadaId').equals(temp.id!).toArray();
+      if (comps.length > 0 && comps.every(c => c.status === 'finalizada') && !temp.finalizada) {
+        await db.temporadas.update(temp.id!, { finalizada: true });
+        temp.finalizada = true;
+      }
+    }
     setTemporadas(temporadasData);
 
     const divisoesData = await db.estruturasDivisao
@@ -40,6 +55,24 @@ export default function UniversoDetail() {
       .equals(Number(id))
       .sortBy('ordem');
     setDivisoes(divisoesData);
+
+    // compute basic stats
+    const temporadaIds = temporadasData.map(t => t.id!);
+    if (temporadaIds.length > 0) {
+      const competicoesAll = await db.competicoes
+        .where('temporadaId')
+        .anyOf(temporadaIds)
+        .toArray();
+      const totalComp = competicoesAll.length;
+      const finalComp = competicoesAll.filter(c => c.status === 'finalizada').length;
+      const clubesSet = new Set<number>();
+      competicoesAll.forEach(c => c.clubesIds.forEach(id => clubesSet.add(id)));
+      const clubesArr = await db.clubes.where('id').anyOf(Array.from(clubesSet)).toArray();
+      const avg = clubesArr.length > 0 ? clubesArr.reduce((sum, c) => sum + c.forca, 0) / clubesArr.length : 0;
+      setStats({ totalClubs: clubesArr.length, avgForca: avg, totalCompeticoes: totalComp, competicoesFinalizadas: finalComp });
+    } else {
+      setStats({ totalClubs: 0, avgForca: 0, totalCompeticoes: 0, competicoesFinalizadas: 0 });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -77,6 +110,82 @@ export default function UniversoDetail() {
       ordem: temporada.ordem
     });
     setShowModal(true);
+  };
+
+  const createDefaultStructure = async (universoId: number) => {
+    // insere 4 divisões básicas com relações de promoção/rebaixamento
+    const nomes = ['Série A', 'Série B', 'Série C', 'Série D'];
+    const cores = ['#fde68a', '#a5b4fc', '#fca5a5', '#6ee7b7'];
+    const adicionados: number[] = [];
+
+    for (let i = 0; i < 4; i++) {
+      const data = {
+        universoId,
+        nome: nomes[i],
+        ordem: i + 1,
+        quantidadeTimes: 20,
+        quantidadePromovidos: 0,
+        quantidadeRebaixados: 0,
+        cor: cores[i],
+        createdAt: new Date()
+      } as any;
+
+      // configurar promoções/rebaixamentos conforme posição
+      if (i === 0) data.quantidadeRebaixados = 4;
+      if (i === 1 || i === 2) {
+        data.quantidadePromovidos = 4;
+        data.quantidadeRebaixados = 4;
+      }
+      if (i === 3) data.quantidadePromovidos = 4;
+
+      const id = await db.estruturasDivisao.add(data);
+      adicionados.push(id as number);
+    }
+
+    // agora defina divisaoSuperiorId/divisaoInferiorId
+    for (let i = 0; i < adicionados.length; i++) {
+      const updates: any = {};
+      if (i > 0) updates.divisaoSuperiorId = adicionados[i - 1];
+      if (i < adicionados.length - 1) updates.divisaoInferiorId = adicionados[i + 1];
+      await db.estruturasDivisao.update(adicionados[i], updates);
+    }
+
+    // criar primeira temporada automaticamente
+    const currentYear = new Date().getFullYear();
+    const temporadaId = await db.temporadas.add({
+      universoId,
+      nome: String(currentYear),
+      ano: currentYear,
+      ordem: 1,
+      finalizada: false,
+      createdAt: new Date()
+    });
+
+    // criar competições iniciais para cada divisão com 20 clubes fictícios
+    const competicoesNames = nomes.map(n => `${n} 202${String(currentYear).slice(-1)}`);
+    for (let i = 0; i < competicoesNames.length; i++) {
+      // criar 20 clubes genéricos para cada divisão
+      const clubeIds: number[] = [];
+      for (let j = 1; j <= 20; j++) {
+        const clubeId = await db.clubes.add({
+          nome: `${nomes[i]} Clube ${j}`,
+          pais: 'Brasil',
+          forca: 50,
+          createdAt: new Date()
+        });
+        clubeIds.push(clubeId as number);
+      }
+
+      await db.competicoes.add({
+        temporadaId: temporadaId as number,
+        nome: competicoesNames[i],
+        tipo: 'pontos-corridos',
+        status: 'configurando',
+        clubesIds: clubeIds,
+        rodadasGeradas: false,
+        createdAt: new Date()
+      });
+    }
   };
 
   const handleDelete = async (temporadaId: number) => {
@@ -141,6 +250,36 @@ export default function UniversoDetail() {
           <p className="text-gray-600 mb-6">{universo.descricao}</p>
         )}
 
+        <div className="mb-4">
+          <input
+            type="text"
+            placeholder="Buscar temporadas..."
+            value={filter}
+            onChange={e => setFilter(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+
+        {/* dashboard stats */}
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-white rounded-lg shadow p-4 text-center">
+            <div className="text-sm text-gray-500">Clubes</div>
+            <div className="text-xl font-bold">{stats.totalClubs}</div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4 text-center">
+            <div className="text-sm text-gray-500">Força média</div>
+            <div className="text-xl font-bold">{stats.avgForca.toFixed(0)}</div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4 text-center">
+            <div className="text-sm text-gray-500">Competições</div>
+            <div className="text-xl font-bold">{stats.totalCompeticoes}</div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4 text-center">
+            <div className="text-sm text-gray-500">Finalizadas</div>
+            <div className="text-xl font-bold">{stats.competicoesFinalizadas}</div>
+          </div>
+        </div>
+
         {/* Seção de Configuração de Divisões */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
@@ -187,9 +326,32 @@ export default function UniversoDetail() {
         <div className="mb-4">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Temporadas</h2>
         </div>
+        {temporadas.length === 0 && (
+          <div className="mb-6 p-4 bg-blue-50 border-l-4 border-blue-400 rounded">
+            <p className="text-blue-800 mb-2">
+              Este universo ainda não possui temporadas. Para facilitar o início, você pode
+              criar uma estrutura padrão com 4 divisões de 20 times (Séries A–D), promoções/rebaixamentos automáticos,
+              uma primeira temporada e competições iniciais preenchidas com times fictícios.
+            </p>
+            <button
+              onClick={async () => {
+                if (!universo) return;
+                if (confirm('Criar estrutura padrão de 4 divisões?')) {
+                  await createDefaultStructure(Number(universo.id));
+                  loadData();
+                }
+              }}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Criar Estrutura Padrão
+            </button>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {temporadas.map(temporada => {
+          {temporadas
+            .filter(t => t.nome.toLowerCase().includes(filter.toLowerCase()))
+            .map(temporada => {
             const podeEditar = canEditTemporada(temporada);
             return (
               <div

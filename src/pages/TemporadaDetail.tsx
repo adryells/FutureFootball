@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Edit, Trash2, Trophy, Download, Sparkles } from 'lucide-react';
 import { db, Competicao, Temporada, SecaoCompeticao, EstruturaDivisao } from '../db/database';
-import { calcularClassificacao } from '../utils/competicao';
+import { calcularClassificacao, gerarResultadoAleatorio, gerarRodadasPontosCorridos, gerarRodadasMataMata } from '../utils/competicao';
 
 export default function TemporadaDetail() {
   const { universoId, id } = useParams<{ universoId: string; id: string }>();
@@ -13,12 +13,16 @@ export default function TemporadaDetail() {
   const [showModal, setShowModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showGerarEstruturaModal, setShowGerarEstruturaModal] = useState(false);
+  const [simulating, setSimulating] = useState(false);
+  const [simProgress, setSimProgress] = useState(0);
+  const [simTotal, setSimTotal] = useState(0);
   const [editingCompeticao, setEditingCompeticao] = useState<Competicao | null>(null);
   const [formData, setFormData] = useState({
     nome: '',
     tipo: 'pontos-corridos' as 'pontos-corridos' | 'mata-mata',
     clubesIds: [] as number[]
   });
+  const [filter, setFilter] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -44,6 +48,62 @@ export default function TemporadaDetail() {
         .sortBy('ordem');
       setDivisoes(divisoesData);
     }
+  };
+
+  const simulateSeason = async () => {
+    if (!temporada) return;
+    setSimulating(true);
+    const comps = await db.competicoes
+      .where('temporadaId')
+      .equals(temporada.id!)
+      .toArray();
+    setSimTotal(comps.length);
+    setSimProgress(0);
+
+    for (const comp of comps) {
+      // generate rounds if not yet
+      if (!comp.rodadasGeradas) {
+        const clubes = await db.clubes.where('id').anyOf(comp.clubesIds).toArray();
+        let novasPartidas: any[] = [];
+        if (comp.tipo === 'pontos-corridos') {
+          novasPartidas = gerarRodadasPontosCorridos(comp.clubesIds);
+        } else {
+          novasPartidas = gerarRodadasMataMata(comp.clubesIds);
+        }
+        novasPartidas = novasPartidas.map(p => ({ ...p, competicaoId: comp.id, jogada: false, createdAt: new Date() }));
+        await db.partidas.bulkAdd(novasPartidas);
+        await db.competicoes.update(comp.id!, { rodadasGeradas: true, status: 'em-andamento' });
+      }
+
+      const partidas = await db.partidas.where('competicaoId').equals(comp.id!).toArray();
+      for (const partida of partidas) {
+        if (!partida.jogada) {
+          const clubeCasa = await db.clubes.get(partida.clubeCasaId);
+          const clubeVisitante = await db.clubes.get(partida.clubeVisitanteId);
+          if (clubeCasa && clubeVisitante) {
+            const { golsCasa, golsVisitante } = gerarResultadoAleatorio(clubeCasa.forca, clubeVisitante.forca);
+            await db.partidas.update(partida.id!, { golsCasa, golsVisitante, jogada: true });
+          }
+        }
+      }
+
+      // finalize competition
+      await db.competicoes.update(comp.id!, { status: 'finalizada' });
+      // check season finalization later
+      setSimProgress(prev => prev + 1);
+    }
+    // after looping all comps, mark season finished if needed
+    const allDone = await db.competicoes
+      .where('temporadaId')
+      .equals(temporada.id!)
+      .toArray();
+    if (allDone.every(c => c.status === 'finalizada')) {
+      await db.temporadas.update(temporada.id!, { finalizada: true });
+    }
+    loadData();
+    setSimulating(false);
+    setSimProgress(0);
+    setSimTotal(0);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -163,6 +223,14 @@ export default function TemporadaDetail() {
               </button>
             )}
             <button
+              onClick={simulateSeason}
+              disabled={simulating}
+              className={`px-4 py-2 rounded-lg flex items-center ${simulating ? 'bg-gray-400 text-white' : 'bg-yellow-500 text-white hover:bg-yellow-600'}`}
+            >
+              <Sparkles className="w-5 h-5 mr-2" />
+              {simulating ? `Simulando (${simProgress}/${simTotal})` : 'Simular Temporada'}
+            </button>
+            <button
               onClick={() => {
                 setEditingCompeticao(null);
                 setFormData({ nome: '', tipo: 'pontos-corridos', clubesIds: [] });
@@ -181,8 +249,20 @@ export default function TemporadaDetail() {
         </h1>
         <p className="text-gray-600 mb-6">Ano: {temporada.ano}</p>
 
+        <div className="mb-4">
+          <input
+            type="text"
+            placeholder="Buscar competições..."
+            value={filter}
+            onChange={e => setFilter(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {competicoes.map(competicao => (
+          {competicoes
+            .filter(c => c.nome.toLowerCase().includes(filter.toLowerCase()))
+            .map(competicao => (
             <div
               key={competicao.id}
               className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"

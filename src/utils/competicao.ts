@@ -170,6 +170,33 @@ export async function calcularClassificacao(
   return resultado;
 }
 
+// gera placares aleatórios baseados em forças (reutiliza lógica do detalhe de competição)
+export function gerarResultadoAleatorio(
+  casaForca: number,
+  visitanteForca: number
+): { golsCasa: number; golsVisitante: number } {
+  const probVitoriaCasa = (casaForca * 1.1) / (casaForca * 1.1 + visitanteForca);
+  const probEmpate = 0.25;
+  const probVitoriaVisitante = 1 - probVitoriaCasa - probEmpate;
+  const random = Math.random();
+  let golsCasa: number;
+  let golsVisitante: number;
+
+  if (random < probVitoriaCasa) {
+    golsCasa = Math.floor(Math.random() * 4) + 1;
+    golsVisitante = Math.floor(Math.random() * 3);
+  } else if (random < probVitoriaCasa + probEmpate) {
+    const gols = Math.floor(Math.random() * 3);
+    golsCasa = gols;
+    golsVisitante = gols;
+  } else {
+    golsVisitante = Math.floor(Math.random() * 4) + 1;
+    golsCasa = Math.floor(Math.random() * 3);
+  }
+
+  return { golsCasa, golsVisitante };
+}
+
 export interface FormaRecente {
   resultado: 'V' | 'E' | 'D';
   partida: Partida;
