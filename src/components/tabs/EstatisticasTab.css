@@ -1,0 +1,2 @@
+#estat-content { background: var(--bg-card); border-radius: 8px; padding: 10px; border: 1px solid var(--border); }
+.estat-nav { display: flex; gap: 3px; }

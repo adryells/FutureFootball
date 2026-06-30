@@ -1,0 +1,194 @@
+.player-modal {
+  max-width: 540px !important;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 24px 20px 20px !important;
+}
+.player-modal::-webkit-scrollbar {
+  width: 4px;
+}
+.player-modal::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
+  border-radius: 2px;
+}
+
+/* Cabeçalho */
+.player-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.player-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #00c853);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.player-pos-badge {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #000;
+}
+
+.player-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.player-nome {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.player-meta {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* Totais */
+.player-totais {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.total-card {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 6px;
+  text-align: center;
+}
+
+.total-valor {
+  display: block;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.total-label {
+  display: block;
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* Seções */
+.player-section {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+
+.player-section h3 {
+  font-size: 0.78rem;
+  color: var(--accent);
+  margin-bottom: 10px;
+  letter-spacing: 0.3px;
+}
+
+.player-empty {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 10px;
+}
+
+/* Premiações */
+.player-premios-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.player-premio-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  background: var(--bg-card);
+  border-radius: 8px;
+  font-size: 0.72rem;
+  border: 1px solid var(--border);
+}
+
+.premio-ano {
+  font-weight: 700;
+  color: var(--gold);
+  min-width: 36px;
+}
+
+.premio-tipo {
+  font-weight: 600;
+  color: var(--text);
+  min-width: 110px;
+}
+
+.premio-detalhe {
+  color: var(--text-dim);
+  font-size: 0.65rem;
+}
+
+/* Tabela de temporadas */
+.player-seasons {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ps-header, .ps-row {
+  display: grid;
+  grid-template-columns: 44px 44px 1fr 30px 30px 34px 44px 36px 36px;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  font-size: 0.68rem;
+  border-radius: 6px;
+}
+
+.ps-header {
+  color: var(--text-dim);
+  font-weight: 600;
+  background: rgba(255,255,255,0.03);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.ps-row {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  transition: background 0.2s;
+}
+.ps-row:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+.ps-ano { font-weight: 700; color: var(--text-dim); }
+.ps-id { text-align: center; font-weight: 600; font-size: 0.6rem; color: var(--text-dim); opacity: 0.7; }
+.ps-time { display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ps-gols, .ps-ast, .ps-jogos { text-align: center; font-weight: 600; }
+.ps-media { text-align: center; font-weight: 700; color: var(--accent); }
+.ps-ovr { text-align: center; font-weight: 600; color: var(--text-dim); }
+.ps-titulo { text-align: center; }
+
+.ps-titulo-campeao { color: var(--gold); }
+.ps-titulo-vice { color: #c0c0c0; }
+.ps-titulo-rebaixado { color: var(--red); }

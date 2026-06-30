@@ -1,0 +1,406 @@
+@keyframes slideUpResumo {
+  from { opacity: 0; transform: translateY(40px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes fadeInBg {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pulseGold {
+  0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.5); }
+  70% { box-shadow: 0 0 0 16px rgba(255, 215, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
+}
+@keyframes trophyBounce {
+  0% { transform: scale(0.3) rotate(-20deg); opacity: 0; }
+  50% { transform: scale(1.2) rotate(5deg); }
+  70% { transform: scale(0.9) rotate(-3deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+@keyframes slideInTag {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.resumo-overlay {
+  animation: fadeInBg 0.3s ease;
+  background: rgba(0, 0, 0, 0.85) !important;
+  backdrop-filter: blur(4px);
+}
+
+.resumo-modal {
+  animation: slideUpResumo 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 540px !important;
+  text-align: center;
+  border: 1px solid rgba(255, 215, 0, 0.3) !important;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5), 0 0 60px rgba(255, 215, 0, 0.05);
+  padding: 24px 20px 20px !important;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.resumo-modal::-webkit-scrollbar {
+  width: 4px;
+}
+.resumo-modal::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
+  border-radius: 2px;
+}
+
+.resumo-trophy {
+  font-size: 3.5rem;
+  display: block;
+  margin: 0 0 4px;
+  animation: trophyBounce 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.resumo-ano {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.resumo-campeao {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--gold);
+  margin: 6px 0;
+  animation: pulseGold 2s ease-in-out 3;
+  display: inline-block;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+}
+
+.resumo-pontos {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  margin-bottom: 2px;
+}
+
+.resumo-vice {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+
+.resumo-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,215,0,0.2), transparent);
+  margin: 12px 0;
+}
+
+.resumo-subtitle {
+  font-size: 0.8rem;
+  color: var(--accent);
+  margin-bottom: 10px;
+  text-align: center;
+  letter-spacing: 0.3px;
+}
+
+/* ===== Seções ===== */
+.resumo-section {
+  margin-top: 8px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border-radius: 10px;
+  text-align: left;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+
+.resumo-section h4 {
+  font-size: 0.78rem;
+  color: var(--accent);
+  margin-bottom: 10px;
+  letter-spacing: 0.3px;
+  text-align: center;
+}
+
+.resumo-section-premios {
+  background: linear-gradient(135deg, rgba(255,215,0,0.04), rgba(255,255,255,0.02));
+  border-color: rgba(255,215,0,0.1);
+}
+
+/* ===== Bola de Ouro ===== */
+.bdo-podium {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 8px;
+  margin: 0 -4px;
+}
+
+.bdo-card {
+  flex: 1;
+  padding: 10px 6px 8px;
+  background: var(--bg-card);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  text-align: center;
+  position: relative;
+  transition: transform 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.bdo-card:hover {
+  transform: translateY(-3px);
+}
+
+.bdo-ouro {
+  border-color: #ffd700;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.15);
+  z-index: 1;
+  transform: scale(1.06);
+  padding: 14px 8px 10px;
+}
+.bdo-ouro:hover {
+  transform: scale(1.06) translateY(-3px);
+}
+
+.bdo-prata {
+  border-color: #c0c0c0;
+}
+
+.bdo-bronze {
+  border-color: #cd7f32;
+}
+
+.bdo-medalha {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.bdo-nota {
+  font-size: 0.85rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.bdo-jogador {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
+.bdo-time {
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.bdo-stats {
+  display: flex;
+  gap: 6px;
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.bdo-stats span {
+  background: rgba(255,255,255,0.05);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+/* ===== Seleção da Temporada ===== */
+.sel-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 auto;
+  max-width: 440px;
+}
+
+.sel-linha {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.sel-jogador {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 7px 4px;
+  text-align: center;
+  flex: 0 1 auto;
+  min-width: 64px;
+  max-width: 110px;
+  position: relative;
+  transition: transform 0.2s;
+}
+.sel-jogador:hover {
+  transform: translateY(-2px);
+}
+
+.sel-pos-gol { border-color: #ffd700; background: rgba(255, 215, 0, 0.06); }
+.sel-pos-ld  { border-color: #448aff; background: rgba(68, 138, 255, 0.06); }
+.sel-pos-zag { border-color: #2979ff; background: rgba(41, 121, 255, 0.06); }
+.sel-pos-le  { border-color: #448aff; background: rgba(68, 138, 255, 0.06); }
+.sel-pos-vol { border-color: #ff9100; background: rgba(255, 145, 0, 0.06); }
+.sel-pos-mei { border-color: #00e676; background: rgba(0, 230, 118, 0.06); }
+.sel-pos-ata { border-color: #ff1744; background: rgba(255, 23, 68, 0.06); }
+
+.sel-jogador-pos-label {
+  font-size: 0.5rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 1px;
+  opacity: 0.7;
+}
+
+.sel-jogador-nome {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.sel-jogador-time {
+  font-size: 0.55rem;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  margin-top: 1px;
+}
+
+.sel-jogador-nota {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-top: 1px;
+}
+
+/* ===== Destaques ===== */
+.resumo-destaques {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.resumo-destaque-card {
+  flex: 1;
+  padding: 10px 8px;
+  background: var(--bg-card);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  text-align: center;
+  transition: transform 0.2s;
+}
+.resumo-destaque-card:hover {
+  transform: translateY(-2px);
+}
+
+.resumo-destaque-card .destaque-icon {
+  font-size: 1.4rem;
+  display: block;
+  margin-bottom: 3px;
+}
+
+.resumo-destaque-card .destaque-nome {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.resumo-destaque-card .destaque-valor {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* ===== Movimentação entre Séries ===== */
+.resumo-movimentacao {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.resumo-mov-col {
+  flex: 1;
+  padding: 8px 10px;
+  background: var(--bg);
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+
+.mov-header {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.mov-promovido {
+  color: var(--accent);
+}
+
+.mov-rebaixado {
+  color: var(--red);
+}
+
+.resumo-time-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.resumo-time-lista.vertical {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.resumo-time-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--bg-card);
+  border-radius: 16px;
+  font-size: 0.7rem;
+  border: 1px solid var(--border);
+  animation: slideInTag 0.3s ease backwards;
+}
+
+.resumo-time-lista:not(.vertical) .resumo-time-tag:nth-child(1) { animation-delay: 0.05s; }
+.resumo-time-lista:not(.vertical) .resumo-time-tag:nth-child(2) { animation-delay: 0.1s; }
+.resumo-time-lista:not(.vertical) .resumo-time-tag:nth-child(3) { animation-delay: 0.15s; }
+.resumo-time-lista:not(.vertical) .resumo-time-tag:nth-child(4) { animation-delay: 0.2s; }
+
+.resumo-time-tag.promovido {
+  border-color: var(--accent);
+  background: rgba(0, 230, 118, 0.12);
+}
+
+.resumo-time-tag.rebaixado {
+  border-color: var(--red);
+  background: rgba(255, 23, 68, 0.1);
+}
+
+.resumo-time-tag.campeao-b {
+  border-color: var(--accent2);
+  background: rgba(41, 121, 255, 0.12);
+}
+
+.resumo-btn {
+  margin-top: 14px;
+  width: 100%;
+  padding: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: 10px !important;
+  background: linear-gradient(135deg, var(--accent), #00c853) !important;
+  cursor: pointer;
+}

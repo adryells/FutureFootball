@@ -1,0 +1,31 @@
+import { useGame } from '../../store/GameContext';
+import { gerarClassificacao } from '../../utils/gameLogic';
+import { TimeLogo } from '../common/TimeLogo';
+export function ClassificationTab() {
+  const { state } = useGame();
+  const s = state.game.state;
+  if (!s) return null;
+  const classificacao = gerarClassificacao(s.times);
+  const totalJogos = s.jogos.reduce((a,r)=>a+r.length,0);
+  const jogosFeitos = s.jogos.reduce((a,r)=>a+r.filter(j=>j.resultado!==null).length,0);
+  function getZonaClass(idx:number):string {
+    if (idx<4) return 'zona-liberta';
+    if (idx<6) return 'zona-pre-liberta';
+    if (idx<12) return 'zona-sulamericana';
+    if (idx>=16) return 'zona-rebaixamento';
+    return '';
+  }
+  return (
+    <section className="tab-content active">
+      <div className="tab-header"><h2>Série A - Classificação</h2><div id="serie-status">
+        {s.concluido ? <span style={{color:'var(--gold)'}}>✅ Campeonato Concluído!</span> : jogosFeitos+'/'+totalJogos+' jogos realizados'}
+      </div></div>
+      <div className="table-wrapper"><table><thead><tr><th>#</th><th>Time</th><th>P</th><th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th></tr></thead>
+        <tbody>{classificacao.map((time,idx)=>{const zona=getZonaClass(idx);const sg=time.golsPro-time.golsContra;return(
+          <tr key={time.nome} className={zona}><td>{idx+1}</td><td><TimeLogo nome={time.nome} size="mini"/> {time.nome}</td><td><strong>{time.pontos}</strong></td><td>{time.jogos}</td><td>{time.vitorias}</td><td>{time.empates}</td><td>{time.derrotas}</td><td>{time.golsPro}</td><td>{time.golsContra}</td><td>{sg>0?'+':''}{sg}</td></tr>
+        );})}</tbody>
+      </table></div>
+      <div className="legenda"><span className="leg-item zona-liberta">Zona Libertadores</span><span className="leg-item zona-pre-liberta">Pré-Libertadores</span><span className="leg-item zona-sulamericana">Sul-Americana</span><span className="leg-item zona-rebaixamento">Zona Rebaixamento</span></div>
+    </section>
+  );
+}

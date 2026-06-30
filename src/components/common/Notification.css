@@ -1,0 +1,5 @@
+.notification { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); padding: 10px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; z-index: 2000; animation: slideDown 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+.notification-success { background: #00e676; color: #000; }
+.notification-error { background: #ff1744; color: #fff; }
+.notification-info { background: #2979ff; color: #fff; }
+@keyframes slideDown { from { opacity: 0; transform: translateX(-50%) translateY(-20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }

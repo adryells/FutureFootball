@@ -1,0 +1,25 @@
+#time-select { background: var(--bg-table); border: 1px solid var(--border); color: var(--text); padding: 5px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; max-width: 180px; }
+#time-detail { margin-top: 8px; }
+#time-info { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; padding: 8px; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border); }
+.time-logo { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.55rem; text-align: center; flex-shrink: 0; }
+#time-nome { font-size: 1rem; color: var(--accent); margin-bottom: 2px; }
+#time-forca, #time-formacao { font-size: 0.78rem; color: var(--text-dim); }
+#time-campo-container { margin-bottom: 10px; overflow-x: auto; }
+#time-campo { background: linear-gradient(180deg,#1a5c2a,#1e6b30,#2a7a3a); border-radius: 12px; border: 2px solid #3a8a4a; min-height: 380px; padding: 16px 10px; min-width: 300px; max-width: 520px; margin: 0 auto; position: relative; }
+/* Linha do meio de campo */
+#time-campo::before { content: ''; position: absolute; left: 10%; right: 10%; top: 50%; height: 2px; background: rgba(255,255,255,0.12); margin-top: -1px; }
+/* Círculo central */
+#time-campo::after { content: ''; position: absolute; left: 50%; top: 50%; width: 60px; height: 60px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.12); margin-left: -30px; margin-top: -30px; pointer-events: none; }
+#campo-titular { display: flex; flex-direction: column; gap: 16px; padding: 8px 0; position: relative; z-index: 1; }
+.campo-linha { display: flex; justify-content: space-around; align-items: center; padding: 0 4px; }
+.campo-linha:first-child { margin-top: 8px; }
+.campo-linha:last-child { margin-bottom: 8px; }
+.campo-jogador { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 56px; padding: 4px 2px; border-radius: 6px; transition: background 0.15s; cursor: default; }
+.campo-jogador:hover { background: rgba(255,255,255,0.08); }
+.campo-vazio { opacity: 0.5; }
+.campo-jogador-num { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 800; color: #fff; background: rgba(0,0,0,0.4); border: 2px solid rgba(255,255,255,0.4); box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+.campo-jogador-nome { font-size: 0.6rem; font-weight: 600; color: #fff; text-align: center; text-shadow: 0 1px 3px rgba(0,0,0,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 52px; }
+.campo-jogador-ovr { font-size: 0.55rem; color: rgba(255,255,255,0.7); text-align: center; background: rgba(0,0,0,0.25); padding: 1px 6px; border-radius: 4px; font-weight: 700; }
+.editable-cell { cursor: pointer; border-bottom: 1px dashed rgba(255,255,255,0.15); transition: border-color 0.2s; display: inline-block; min-width: 20px; }
+.editable-cell:hover { border-bottom-color: var(--accent); background: rgba(0,230,118,0.05); }
+.pos-badge { display: inline-block; padding: 1px 6px; border-radius: 4px; color: #fff; font-size: 0.7rem; font-weight: 600; }

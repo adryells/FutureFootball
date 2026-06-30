@@ -100,6 +100,7 @@ export interface ResultadoSerie {
   classificacao: { nome: string; pontos: number; vitorias: number; jogos: number }[];
   promovidos: string[];
   rebaixados: string[];
+  /** Estado completo da temporada simulada (times com jogadores, jogos, golsInfo) */
   _estado?: EstadoTemporada;
 }
 
@@ -112,10 +113,7 @@ export interface CampeaoAno {
 export interface GameState {
   year: number;
   state: EstadoTemporada | null;
-  /** Temporadas completas em memória (apenas as mais recentes; antigas vão pro IndexedDB) */
   championships: Record<string, EstadoTemporada>;
-  /** Lista completa de anos disponíveis (incluindo os que estão no IndexedDB) */
-  _championshipYears?: string[];
   seriesB: string[];
   seriesC: string[];
   lastSeriesResults: LastSeriesResults | null;
@@ -131,11 +129,15 @@ export interface GameState {
   _jogadorHistoricoClubes?: JogadorHistoricoClube[];
   /** Próximo ID para times (auto-incremento) */
   _proximoTimeId?: number;
-  _estadoB?: EstadoTemporada;
-  _estadoC?: EstadoTemporada;
-  _championshipsB?: Record<string, EstadoTemporada>;
-  _championshipsC?: Record<string, EstadoTemporada>;
   _logoUrl?: string | null;
+  /** Estado completo da Série B (times, jogos, resultados) */
+  _estadoB?: EstadoTemporada;
+  /** Estado completo da Série C (times, jogos, resultados) */
+  _estadoC?: EstadoTemporada;
+  /** Histórico de temporadas da Série B (ano -> EstadoTemporada) */
+  _championshipsB?: Record<string, EstadoTemporada>;
+  /** Histórico de temporadas da Série C (ano -> EstadoTemporada) */
+  _championshipsC?: Record<string, EstadoTemporada>;
 }
 
 /** Registro de um jogador em um clube em uma temporada */
@@ -258,21 +260,6 @@ export interface BdoRankingEntry {
   pratas: number;
   bronzes: number;
   totalPremios: number;
-}
-
-/** Resultado completo de iniciarNovoAno */
-export interface ResultadoIniciarAno {
-  novoState: EstadoTemporada;
-  novaSeriesB: string[];
-  novaSeriesC: string[];
-  rebaixados: string[];
-  promovidos: string[];
-  resultadoB: ResultadoSerie;
-  resultadoC: { promovidos: string[]; classificacao: { nome: string; pontos: number; vitorias: number; jogos: number }[] };
-  campeao: string;
-  rebaixadosB: string[];
-  estadoB: EstadoTemporada;
-  estadoC: EstadoTemporada;
 }
 
 export interface GoatRankingEntry extends BdoRankingEntry {

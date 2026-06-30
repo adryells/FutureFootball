@@ -1,0 +1,113 @@
+#main-nav {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 10px 8px 12px;
+  margin-bottom: 10px;
+  background: linear-gradient(135deg, rgba(0,230,118,0.05) 0%, rgba(0,100,200,0.03) 50%, transparent 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text-dim);
+  padding: 7px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.72rem;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+  position: relative;
+  min-width: 70px;
+  justify-content: center;
+  font-family: inherit;
+}
+
+.nav-btn:hover {
+  background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.03));
+  color: var(--text);
+  border-color: rgba(255,255,255,0.2);
+  transform: translateY(-2px);
+}
+
+.nav-btn.active {
+  background: linear-gradient(135deg, var(--accent), #00b84d);
+  color: #000;
+  border-color: var(--accent);
+  font-weight: 700;
+  box-shadow: 0 3px 12px rgba(0, 230, 118, 0.35);
+  transform: translateY(-1px);
+}
+
+.nav-btn:active {
+  transform: translateY(0);
+}
+
+.nav-btn-icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.nav-btn-label {
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  font-size: 0.62rem;
+}
+
+.nav-btn-active-indicator {
+  position: absolute;
+  bottom: -1px;
+  left: 35%;
+  right: 35%;
+  height: 2px;
+  background: #fff;
+  border-radius: 2px;
+  opacity: 0.5;
+}
+
+@media (max-width: 700px) {
+  #main-nav {
+    gap: 4px;
+    padding: 8px 4px 10px;
+    border-radius: 10px;
+  }
+  .nav-btn {
+    font-size: 0.62rem;
+    padding: 5px 10px;
+    border-radius: 8px;
+    gap: 4px;
+    min-width: 50px;
+  }
+  .nav-btn-icon {
+    font-size: 0.8rem;
+  }
+  .nav-btn-label {
+    font-size: 0.55rem;
+  }
+}
+
+@media (max-width: 400px) {
+  #main-nav {
+    gap: 3px;
+    padding: 6px 2px 8px;
+  }
+  .nav-btn {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.55rem;
+    gap: 2px;
+    min-width: 40px;
+  }
+  .nav-btn-icon {
+    font-size: 0.7rem;
+  }
+  .nav-btn-label {
+    font-size: 0.5rem;
+  }
+}

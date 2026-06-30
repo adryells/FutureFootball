@@ -1,0 +1,1225 @@
+import { Jogador, Time, EstadoTemporada, Jogo, GolInfo, ResultadoSerie, ResultadoIniciarAno, GameState, EstatisticasTemporada, CampeaoAno, Posicao, TimeLado, PrefsPorSerie, TimePrefs, BolaDeOuroResult, BolaDeOuroEntry, SelecaoTemporada, SelecaoEntry, MediaJogador, BolaDeOuroHistorico, SelecaoHistorico, gerarIdJogador, BdoRankingEntry, GoatRankingEntry, JogadorHistoricoClube } from '../types';
+import { FIRST_NAMES, LAST_NAMES, FORMACOES, FORMACOES_LIST, SERIES_DATA, getTimePref } from '../data/initialData';
+import { randomInt, randomChoice, poissonRandom } from './random';
+
+/**
+ * Remove golsInfo dos jogos de um EstadoTemporada para reduzir o tamanho
+ * ao salvar no histórico. Após muitos anos, os golsInfo acumulados
+ * podem tornar o JSON excessivamente grande.
+ */
+function stripGolsInfo(estado: EstadoTemporada): EstadoTemporada {
+  if (!estado.jogos) return estado;
+  for (const rodada of estado.jogos) {
+    for (const jogo of rodada) {
+      if (jogo.golsInfo) {
+        jogo.golsInfo = [];
+      }
+    }
+  }
+  return estado;
+}
+
+// ========== Preferências Globais ==========
+let _activePrefs: PrefsPorSerie | null = null;
+
+export function getActivePrefs(): PrefsPorSerie | null {
+  return _activePrefs;
+}
+
+export function setActivePrefs(prefs: PrefsPorSerie): void {
+  _activePrefs = prefs;
+}
+
+export function clearActivePrefs(): void {
+  _activePrefs = null;
+}
+
+function getTimePrefsFor(nome: string, serie: 'A' | 'B' | 'C'): TimePrefs {
+  if (_activePrefs?.[serie]?.[nome]) {
+    return _activePrefs[serie][nome];
+  }
+  return getTimePref(nome);
+}
+
+// ========== Geração de Jogadores ==========
+
+function gerarNomeJogador(): string { return randomChoice(FIRST_NAMES) + ' ' + randomChoice(LAST_NAMES); }
+
+function gerarIdade(): number { return 18 + randomInt(0, 22); }
+
+function gerarAltura(): string { return 165 + randomInt(0, 34) + 'cm'; }
+function gerarPeso(): string { return 60 + randomInt(0, 34) + 'kg'; }
+
+function gerarOverall(idade: number, forcaTime?: number): number {
+  if (forcaTime !== undefined) {
+    const variacao = randomInt(-8, 8);
+    let base = forcaTime + variacao;
+    if (idade <= 20) base -= randomInt(2, 6);
+    else if (idade <= 23) base -= randomInt(0, 2);
+    else if (idade >= 33) base -= randomInt(1, 4);
+    else if (idade >= 25 && idade <= 30) base += randomInt(0, 2);
+    return Math.min(99, Math.max(40, base));
+  }
+  let base = 0;
+  if (idade <= 20) base = 55 + randomInt(0, 24);
+  else if (idade <= 22) base = 60 + randomInt(0, 21);
+  else if (idade <= 27) base = 65 + randomInt(0, 27);
+  else if (idade <= 30) base = 60 + randomInt(0, 29);
+  else if (idade <= 35) base = 55 + randomInt(0, 27);
+  else base = 50 + randomInt(0, 24);
+  return Math.min(99, Math.max(40, base));
+}
+
+/** Registra um jogador no banco global. Se já existir, mescla dados históricos. */
+function registrarJogadorNoBanco(jogador: Jogador, banco: Record<number, Jogador>): void {
+  const existente = banco[jogador.id];
+  if (existente) {
+    // Mescla os dados históricos do jogador atual com o banco
+    existente.golsHistorico = Math.max(existente.golsHistorico || 0, jogador.golsHistorico || 0);
+    existente.assistenciasHistorico = Math.max(existente.assistenciasHistorico || 0, jogador.assistenciasHistorico || 0);
+    existente.partidasHistorico = Math.max(existente.partidasHistorico || 0, jogador.partidasHistorico || 0);
+    existente.somaNotasHistorico = Math.max(existente.somaNotasHistorico || 0, jogador.somaNotasHistorico || 0);
+    existente.idade = jogador.idade;
+    existente.overall = jogador.overall;
+    existente.anosAtivo = jogador.anosAtivo;
+    existente.aposentado = jogador.aposentado ?? existente.aposentado;
+    existente.ultimaTemporada = jogador.ultimaTemporada ?? existente.ultimaTemporada;
+  } else {
+    banco[jogador.id] = { ...jogador };
+  }
+}
+
+/** Sincroniza o banco global com todos os jogadores ativos (não aposentados) dos times */
+function sincronizarBancoComTimes(times: Record<string, Time>, banco: Record<number, Jogador>, ano: number): void {
+  for (const nome in times) {
+    const time = times[nome];
+    for (const j of time.jogadores) {
+      j.aposentado = false;
+      j.ultimaTemporada = ano;
+      registrarJogadorNoBanco(j, banco);
+    }
+  }
+}
+
+export function criarJogador(idadeForcada?: number, posicaoForcada?: Posicao, forcaTime?: number): Jogador {
+  const idade = idadeForcada ?? gerarIdade();
+  const pos = posicaoForcada ?? randomChoice(FORMACOES[randomChoice(FORMACOES_LIST)].posicoes);
+  return {
+    id: gerarIdJogador(),
+    nome: gerarNomeJogador(),
+    posicao: pos,
+    idade,
+    overall: gerarOverall(idade, forcaTime),
+    altura: gerarAltura(),
+    peso: gerarPeso(),
+    gols: 0,
+    assistencias: 0,
+    golsHistorico: 0,
+    assistenciasHistorico: 0,
+    anosAtivo: 0,
+    partidas: 0,
+    partidasHistorico: 0,
+    somaNotas: 0,
+    somaNotasHistorico: 0,
+    aposentado: false,
+  };
+}
+
+export function criarJogadorComBanco(banco: Record<number, Jogador>, idadeForcada?: number, posicaoForcada?: Posicao, forcaTime?: number): Jogador {
+  const j = criarJogador(idadeForcada, posicaoForcada, forcaTime);
+  registrarJogadorNoBanco(j, banco);
+  return j;
+}
+
+// ========== Criação de Times ==========
+
+function criarTimeJogadores(forcaTime?: number, banco?: Record<number, Jogador>): { jogadores: Jogador[]; formacao: string } {
+  const formacaoNome = randomChoice(FORMACOES_LIST);
+  const formacao = FORMACOES[formacaoNome];
+  const jogadores: Jogador[] = [];
+  for (let i = 0; i < formacao.posicoes.length; i++) {
+    const j = banco
+      ? criarJogadorComBanco(banco, 18 + randomInt(0, 21), formacao.posicoes[i], forcaTime)
+      : criarJogador(18 + randomInt(0, 21), formacao.posicoes[i], forcaTime);
+    jogadores.push(j);
+  }
+  return { jogadores, formacao: formacaoNome };
+}
+
+export function calcularForcaTime(jogadores: Jogador[]): number {
+  if (!jogadores || jogadores.length === 0) return 50;
+  const ativos = jogadores.filter(j => !j.aposentado);
+  if (ativos.length === 0) return 50;
+  return Math.round(ativos.reduce((acc, j) => acc + j.overall, 0) / ativos.length);
+}
+
+export function criarTime(nome: string, forcaTime?: number, relevancia?: number, banco?: Record<number, Jogador>, timeId?: number): Time {
+  const f = forcaTime ?? 65;
+  const r = criarTimeJogadores(f, banco);
+  const time: Time = {
+    timeId: timeId ?? 0,
+    nome,
+    jogadores: r.jogadores,
+    formacao: r.formacao,
+    forca: calcularForcaTime(r.jogadores),
+    vitorias: 0, empates: 0, derrotas: 0,
+    golsPro: 0, golsContra: 0,
+    pontos: 0, jogos: 0
+  };
+  (time as any)._relevancia = relevancia ?? 2;
+  return time;
+}
+
+export function criarTimes(listaNomes: string[], serie: 'A' | 'B' | 'C' = 'A', banco?: Record<number, Jogador>, proximoTimeId?: number): Record<string, Time> {
+  const times: Record<string, Time> = {};
+  let nextId = proximoTimeId ?? 1;
+  for (const nome of listaNomes) {
+    const prefs = getTimePrefsFor(nome, serie);
+    times[nome] = criarTime(nome, prefs.forcaGeral, prefs.relevancia, banco, nextId++);
+  }
+  return times;
+}
+
+/**
+ * Busca jogador pelo ID em todos os times e no banco global.
+ * Usado para obter referência direta ao objeto Jogador (com histórico completo).
+ */
+function buscarJogadorPorId(id: number, times: Record<string, Time>, banco: Record<number, Jogador>): Jogador | null {
+  if (banco[id]) return banco[id];
+  for (const nome in times) {
+    for (const j of times[nome].jogadores) {
+      if (j.id === id) return j;
+    }
+  }
+  return null;
+}
+
+// ========== Geração de Rodadas ==========
+
+export function gerarRodadas(timesNomes: string[]): Jogo[][] {
+  const teams = timesNomes.slice();
+  const n = teams.length;
+  const metade = n / 2;
+  const primeiroTurno: Jogo[][] = [];
+  for (let r = 0; r < n - 1; r++) {
+    const rodada: Jogo[] = [];
+    for (let i = 0; i < metade; i++) {
+      const t1 = teams[i];
+      const t2 = teams[n - 1 - i];
+      if (t1 && t2) {
+        if ((r + i) % 2 === 0) rodada.push({ casa: t1, fora: t2, resultado: null, golsInfo: [] });
+        else rodada.push({ casa: t2, fora: t1, resultado: null, golsInfo: [] });
+      }
+    }
+    primeiroTurno.push(rodada);
+    const ultimo = teams.pop()!;
+    teams.splice(1, 0, ultimo);
+  }
+  const segundoTurno: Jogo[][] = primeiroTurno.map(rodada => rodada.map(jogo => ({ casa: jogo.fora, fora: jogo.casa, resultado: null, golsInfo: [] })));
+  return [...primeiroTurno, ...segundoTurno];
+}
+
+// ========== Simulação de Partidas ==========
+
+export function simularPartida(timeCasa: Time, timeFora: Time, jogadoresCasa: Jogador[], jogadoresFora: Jogador[]): { golsCasa: number; golsFora: number; golsInfo: GolInfo[] } {
+  const relevanciaCasa = (timeCasa as any)._relevancia ?? 2;
+  const relevanciaFora = (timeFora as any)._relevancia ?? 2;
+  const fatorRelevancia = (relevanciaCasa - relevanciaFora) * 2;
+  const diff = (timeCasa.forca + 5 + fatorRelevancia) - timeFora.forca;
+  const mediaCasa = Math.max(0.2, Math.min(5, 1.2 + (diff / 100) * 2));
+  const mediaFora = Math.max(0.1, Math.min(4, 0.8 - (diff / 100) * 1.5));
+  const golsCasa = poissonRandom(mediaCasa);
+  const golsFora = poissonRandom(mediaFora);
+  const golsInfo = distribuirGols(jogadoresCasa, jogadoresFora, golsCasa, golsFora);
+  return { golsCasa, golsFora, golsInfo };
+}
+
+export function distribuirGols(jogCasa: Jogador[], jogFora: Jogador[], golsCasa: number, golsFora: number): GolInfo[] {
+  const golsInfo: GolInfo[] = [];
+  function processarTime(jogadores: Jogador[], gols: number, timeLabel: TimeLado) {
+    for (let i = 0; i < gols; i++) {
+      const atac = jogadores.filter(j => j.posicao === 'ATA');
+      const meia = jogadores.filter(j => j.posicao === 'MEI');
+      const outr = jogadores.filter(j => j.posicao !== 'ATA' && j.posicao !== 'MEI' && j.posicao !== 'GOL');
+      const gol = jogadores.filter(j => j.posicao === 'GOL');
+      let r = Math.random();
+      let pool: Jogador[];
+      if (r < 0.55 && atac.length > 0) pool = atac;
+      else if (r < 0.85 && meia.length > 0) pool = meia;
+      else if (r < 0.97 && outr.length > 0) pool = outr;
+      else pool = gol.length > 0 ? gol : jogadores;
+      const totalOV = pool.reduce((s, j) => s + j.overall, 0);
+      let ra = Math.random() * totalOV;
+      let scorer = pool[pool.length - 1];
+      for (const j of pool) { ra -= j.overall; if (ra <= 0) { scorer = j; break; } }
+      let assistente: string | null = null;
+      if (Math.random() < 0.65) {
+        const possiveis = jogadores.filter(j => j.nome !== scorer.nome && j.posicao !== 'GOL');
+        if (possiveis.length > 0) assistente = randomChoice(possiveis).nome;
+      }
+      golsInfo.push({ type: 'gol', time: timeLabel, jogador: scorer.nome, timeNome: '', assistencia: assistente, minuto: randomInt(1, 90) });
+      scorer.gols = (scorer.gols || 0) + 1;
+      scorer.golsHistorico = (scorer.golsHistorico || 0) + 1;
+      if (assistente) {
+        const ast = jogadores.find(j => j.nome === assistente);
+        if (ast) { ast.assistencias = (ast.assistencias || 0) + 1; ast.assistenciasHistorico = (ast.assistenciasHistorico || 0) + 1; }
+      }
+    }
+  }
+  processarTime(jogCasa, golsCasa, 'casa');
+  processarTime(jogFora, golsFora, 'fora');
+  golsInfo.sort((a, b) => a.minuto - b.minuto);
+  return golsInfo;
+}
+
+/** Calcula nota de um jogador com base em overall, gols, assistências e resultado
+ *  A faixa realista é entre 5.0 e 7.3. Abaixo de 5 é raro (partida desastrosa),
+ *  acima de 7.3 é para destaques e vencedores.
+ */
+function calcularNotaJogador(j: Jogador, gols: number, assistencias: number, venceu: boolean, empatou: boolean): number {
+  // Base: overall 50~99 mapeado para 5.0~7.0
+  const progresso = (j.overall - 40) / 59; // 0 a 1
+  let nota = 5.0 + progresso * 2.0; // 5.0 a 7.0
+
+  // Bônus por gols e assistências (moderado)
+  nota += gols * 0.7;
+  nota += assistencias * 0.3;
+
+  // Contexto do resultado da partida
+  if (venceu) nota += 0.5;
+  else if (empatou) nota += 0.1;
+  else nota -= 0.1;
+
+  // Penalidade para goleiro se levou muitos gols (será aplicada externamente)
+  return Math.max(4.5, Math.min(10, Math.round(nota * 10) / 10));
+}
+
+export function aplicarResultado(state: EstadoTemporada, indiceRodada: number, indiceJogo: number, golsCasa: number, golsFora: number, golsInfo: GolInfo[]): boolean {
+  const jogo = state.jogos[indiceRodada]?.[indiceJogo];
+  if (!jogo || jogo.resultado !== null) return false;
+  jogo.resultado = { casa: golsCasa, fora: golsFora };
+  jogo.golsInfo = golsInfo;
+  const tc = state.times[jogo.casa];
+  const tf = state.times[jogo.fora];
+  tc.jogos++; tf.jogos++;
+  tc.golsPro += golsCasa; tc.golsContra += golsFora;
+  tf.golsPro += golsFora; tf.golsContra += golsCasa;
+  if (golsCasa > golsFora) { tc.vitorias++; tc.pontos += 3; tf.derrotas++; }
+  else if (golsCasa < golsFora) { tf.vitorias++; tf.pontos += 3; tc.derrotas++; }
+  else { tc.empates++; tf.empates++; tc.pontos++; tf.pontos++; }
+
+  // === Atualizar partidas e notas dos jogadores ===
+  const golsMapCasa: Record<string, number> = {};
+  const golsMapFora: Record<string, number> = {};
+  const astMapCasa: Record<string, number> = {};
+  const astMapFora: Record<string, number> = {};
+  for (const gi of golsInfo) {
+    if (gi.time === 'casa') {
+      golsMapCasa[gi.jogador] = (golsMapCasa[gi.jogador] || 0) + 1;
+      if (gi.assistencia) astMapCasa[gi.assistencia] = (astMapCasa[gi.assistencia] || 0) + 1;
+    } else {
+      golsMapFora[gi.jogador] = (golsMapFora[gi.jogador] || 0) + 1;
+      if (gi.assistencia) astMapFora[gi.assistencia] = (astMapFora[gi.assistencia] || 0) + 1;
+    }
+  }
+  const venceuCasa = golsCasa > golsFora;
+  const venceuFora = golsFora > golsCasa;
+  const empatou = golsCasa === golsFora;
+
+  for (const j of tc.jogadores) {
+    j.partidas = (j.partidas || 0) + 1;
+    j.partidasHistorico = (j.partidasHistorico || 0) + 1;
+    const g = golsMapCasa[j.nome] || 0;
+    const a = astMapCasa[j.nome] || 0;
+    // goleiro penalizado se levou muitos gols
+    let notaFinal = calcularNotaJogador(j, g, a, venceuCasa, empatou);
+    if (j.posicao === 'GOL' && golsFora > 2) notaFinal = Math.max(1, notaFinal - (golsFora - 2) * 0.3);
+    j.somaNotas = (j.somaNotas || 0) + notaFinal;
+    j.somaNotasHistorico = (j.somaNotasHistorico || 0) + notaFinal;
+  }
+  for (const j of tf.jogadores) {
+    j.partidas = (j.partidas || 0) + 1;
+    j.partidasHistorico = (j.partidasHistorico || 0) + 1;
+    const g = golsMapFora[j.nome] || 0;
+    const a = astMapFora[j.nome] || 0;
+    let notaFinal = calcularNotaJogador(j, g, a, venceuFora, empatou);
+    if (j.posicao === 'GOL' && golsCasa > 2) notaFinal = Math.max(1, notaFinal - (golsCasa - 2) * 0.3);
+    j.somaNotas = (j.somaNotas || 0) + notaFinal;
+    j.somaNotasHistorico = (j.somaNotasHistorico || 0) + notaFinal;
+  }
+
+  verificarAvancarRodada(state);
+  if (todasRodadasJogadas(state)) { state.concluido = true; state.rodadaAtual = state.jogos.length - 1; }
+  return true;
+}
+
+function verificarAvancarRodada(state: EstadoTemporada): void {
+  const rodada = state.jogos[state.rodadaAtual];
+  if (!rodada) return;
+  if (rodada.every(j => j.resultado !== null) && state.rodadaAtual < state.jogos.length - 1) state.rodadaAtual++;
+}
+
+function todasRodadasJogadas(state: EstadoTemporada): boolean {
+  return state.jogos.every(r => r.every(j => j.resultado !== null));
+}
+
+export function simularRodada(state: EstadoTemporada, indiceRodada: number): boolean {
+  const rodada = state.jogos[indiceRodada];
+  if (!rodada) return false;
+  for (let i = 0; i < rodada.length; i++) {
+    const jogo = rodada[i];
+    if (jogo.resultado !== null) continue;
+    const tc = state.times[jogo.casa];
+    const tf = state.times[jogo.fora];
+    const r = simularPartida(tc, tf, tc.jogadores, tf.jogadores);
+    aplicarResultado(state, indiceRodada, i, r.golsCasa, r.golsFora, r.golsInfo);
+  }
+  return true;
+}
+
+export function simularTodasRodadas(state: EstadoTemporada): void {
+  for (let r = 0; r < state.jogos.length; r++) simularRodada(state, r);
+}
+
+export function simularRestantes(state: EstadoTemporada): void {
+  for (let r = state.rodadaAtual; r < state.jogos.length; r++) simularRodada(state, r);
+}
+
+export function gerarClassificacao(times: Record<string, Time>): Time[] {
+  const lista = Object.values(times);
+  lista.sort((a, b) => {
+    if (b.pontos !== a.pontos) return b.pontos - a.pontos;
+    const sgA = a.golsPro - a.golsContra;
+    const sgB = b.golsPro - b.golsContra;
+    if (sgB !== sgA) return sgB - sgA;
+    return b.golsPro - a.golsPro;
+  });
+  return lista;
+}
+
+export function simularSerieCompleta(
+  timesNomes: string[],
+  serie: 'A' | 'B' | 'C' = 'A',
+  banco?: Record<number, Jogador>,
+  timesExistentes?: Record<string, Time>
+): ResultadoSerie & { _estado?: EstadoTemporada } {
+  let times: Record<string, Time>;
+  if (timesExistentes) {
+    // Reutiliza times existentes com seus jogadores preservados
+    times = {};
+    for (const nome of timesNomes) {
+      if (timesExistentes[nome]) {
+        times[nome] = timesExistentes[nome];
+      } else {
+        const prefs = getTimePrefsFor(nome, serie);
+        times[nome] = criarTime(nome, prefs.forcaGeral, prefs.relevancia, banco);
+      }
+    }
+  } else {
+    times = criarTimes(timesNomes, serie, banco);
+  }
+  const jogos = gerarRodadas(timesNomes);
+  const state = { times, jogos } as EstadoTemporada;
+  simularTodasRodadas(state);
+  const classif = gerarClassificacao(times);
+  return {
+    classificacao: classif.map(t => ({ nome: t.nome, pontos: t.pontos, vitorias: t.vitorias, jogos: t.jogos })),
+    promovidos: classif.slice(0,4).map(t => t.nome),
+    rebaixados: classif.slice(-4).map(t => t.nome),
+    _estado: state,
+  };
+}
+
+export function processarEnvelhecimento(
+  jogadores: Jogador[],
+  banco: Record<number, Jogador>,
+  anoCorrente: number
+): { jogadoresAtivos: Jogador[]; revelacoes: Jogador[] } {
+  const ativos: Jogador[] = [];
+  const revelacoes: Jogador[] = [];
+
+  for (const j of jogadores) {
+    j.idade++;
+    j.anosAtivo++;
+
+    // Verifica aposentadoria
+    if (j.idade >= 40 || j.anosAtivo >= 20) {
+      // MARCA como aposentado, NUNCA deleta
+      j.aposentado = true;
+      j.ultimaTemporada = anoCorrente;
+      registrarJogadorNoBanco(j, banco);
+      // Cria uma revelação para substituir
+      const revelacao = criarJogadorComBanco(banco, 18 + randomInt(0, 3), j.posicao);
+      revelacoes.push(revelacao);
+      continue;
+    }
+
+    // Evolução/declínio baseado na idade
+    let delta = 0;
+    if (j.idade <= 23) delta = 1 + randomInt(0, 2);
+    else if (j.idade <= 28) delta = 1 + randomInt(0, 1);
+    else if (j.idade <= 32) delta = -1 + randomInt(0, 2);
+    else delta = -randomInt(0, 3);
+
+    j.overall = Math.min(99, Math.max(40, j.overall + delta));
+    j.aposentado = false;
+    j.ultimaTemporada = anoCorrente;
+    registrarJogadorNoBanco(j, banco);
+    ativos.push(j);
+  }
+
+  return { jogadoresAtivos: ativos, revelacoes };
+}
+
+export function envelhecerTimes(
+  times: Record<string, Time>,
+  banco: Record<number, Jogador>,
+  anoCorrente: number
+): Record<string, Time> {
+  for (const nome in times) {
+    const time = times[nome];
+    const { jogadoresAtivos, revelacoes } = processarEnvelhecimento(time.jogadores, banco, anoCorrente);
+    // Adiciona revelações ao time
+    time.jogadores = [...jogadoresAtivos, ...revelacoes];
+    time.forca = calcularForcaTime(time.jogadores);
+    if (!time.formacao) time.formacao = randomChoice(FORMACOES_LIST);
+  }
+  return times;
+}
+
+export function getEstatisticas(state: EstadoTemporada): EstatisticasTemporada {
+  const artilheiros: Record<string, any> = {};
+  const assistencias: Record<string, any> = {};
+  for (const nome in state.times) {
+    const time = state.times[nome];
+    for (const j of time.jogadores) {
+      if (j.gols > 0) { const k = j.nome+'|'+nome; if(!artilheiros[k]||j.gols>artilheiros[k].gols) artilheiros[k]={nome:j.nome,time:nome,gols:j.gols,golsHistorico:j.golsHistorico||0}; }
+      if (j.assistencias > 0) { const k = j.nome+'|'+nome; if(!assistencias[k]||j.assistencias>assistencias[k].assists) assistencias[k]={nome:j.nome,time:nome,assists:j.assistencias,assistsHistorico:j.assistenciasHistorico||0}; }
+    }
+  }
+  return { artilheiros: Object.values(artilheiros).sort((a,b) => b.gols-a.gols), assistencias: Object.values(assistencias).sort((a,b) => b.assists-a.assists) };
+}
+
+export function getEstatisticasGlobais(championships: Record<string, EstadoTemporada>): EstatisticasTemporada {
+  const todosArtilheiros: Record<string,any> = {};
+  const todosAssistencias: Record<string,any> = {};
+  for (const ano in championships) {
+    const s = championships[ano];
+    if (!s?.times) continue;
+    for (const nome in s.times) {
+      const time = s.times[nome];
+      if (!time.jogadores) continue;
+      for (const j of time.jogadores) {
+        if (j.golsHistorico > 0) { const k=j.nome+'|'+nome; if(!todosArtilheiros[k]||j.golsHistorico>todosArtilheiros[k].gols) todosArtilheiros[k]={nome:j.nome,time:nome,gols:j.golsHistorico}; }
+        if (j.assistenciasHistorico > 0) { const k=j.nome+'|'+nome; if(!todosAssistencias[k]||j.assistenciasHistorico>todosAssistencias[k].assists) todosAssistencias[k]={nome:j.nome,time:nome,assists:j.assistenciasHistorico}; }
+      }
+    }
+  }
+  return { artilheiros: Object.values(todosArtilheiros).sort((a,b) => b.gols-a.gols), assistencias: Object.values(todosAssistencias).sort((a,b) => b.assists-a.assists) };
+}
+
+export function getHistoricoAnos(championships: Record<string, EstadoTemporada>): string[] {
+  return Object.keys(championships).sort();
+}
+
+export function getCampeoesJogo(_campeoes: Record<number, CampeaoAno>): { ano: number; campeao: string; vice: string }[] {
+  const lista = Object.entries(_campeoes).map(([ano, c]) => ({ ano: parseInt(ano), campeao: c.campeao, vice: c.vice || '' }));
+  lista.sort((a, b) => a.ano - b.ano);
+  return lista;
+}
+
+export function iniciarNovoAno(
+  timesAObj: Record<string, Time>,
+  seriesBLista: string[],
+  seriesCLista: string[],
+  ano: number,
+  currentYear: number,
+  currentChampionships: Record<string, EstadoTemporada>,
+  currentCampeoes: Record<number, CampeaoAno>,
+  gameState?: GameState
+): ResultadoIniciarAno {
+  // Obter o banco global de jogadores
+  const banco = gameState?._todosJogadores ?? {};
+
+  // 1) Salvar a temporada atual no histórico (com deep copy para preservar dados)
+  if (timesAObj && Object.keys(timesAObj).length > 0) {
+    const classifAtual = gerarClassificacao(timesAObj);
+    const estadoSalvo: EstadoTemporada = {
+      times: JSON.parse(JSON.stringify(timesAObj)),
+      jogos: [],
+      rodadaAtual: 0,
+      concluido: true,
+      _campeao: classifAtual.length > 0 ? classifAtual[0].nome : '',
+      _vice: classifAtual.length > 1 ? classifAtual[1].nome : '',
+      _rebaixados: classifAtual.slice(-4).map(t => t.nome),
+      _concluido: true,
+    };
+    currentChampionships[String(currentYear)] = estadoSalvo;
+    currentCampeoes[currentYear] = {
+      campeao: estadoSalvo._campeao || '',
+      vice: estadoSalvo._vice || '',
+      rebaixados: estadoSalvo._rebaixados || [],
+    };
+
+    // Salvar no histórico de clubes dos jogadores (para preservar dados mesmo em series B/C)
+    const historicoClubes = gameState?._jogadorHistoricoClubes ?? [];
+    for (const [timeNome, time] of Object.entries(timesAObj)) {
+      for (const j of time.jogadores) {
+        const media = getMediaJogador(j);
+        historicoClubes.push({
+          jogadorId: j.id,
+          jogadorNome: j.nome,
+          ano: currentYear,
+          time: timeNome,
+          gols: j.gols,
+          assistencias: j.assistencias,
+          partidas: j.partidas || 0,
+          media: media.temporada,
+          overall: j.overall,
+        });
+      }
+    }
+    if (gameState) {
+      gameState._jogadorHistoricoClubes = historicoClubes;
+    }
+  }
+
+  // ===== Construir o banco completo de times conhecidos (A, B, C) =====
+  // Key = nome do time, Value = Time com jogadores atuais
+  const todosTimesConhecidos: Record<string, Time> = {};
+
+  // Times da Série A (sempre os mais atuais)
+  if (timesAObj) {
+    for (const nome in timesAObj) {
+      todosTimesConhecidos[nome] = JSON.parse(JSON.stringify(timesAObj[nome]));
+    }
+  }
+
+  // Times conhecidos de series anteriores (B e C) preservados no gameState
+  const timesConhecidosAnteriores = gameState?._timesConhecidos ?? {};
+  for (const nome in timesConhecidosAnteriores) {
+    if (!todosTimesConhecidos[nome]) {
+      todosTimesConhecidos[nome] = JSON.parse(JSON.stringify(timesConhecidosAnteriores[nome]));
+    }
+  }
+
+  // Sincronizar banco global com os times da Série A antes de envelhecer
+  sincronizarBancoComTimes(timesAObj, banco, currentYear);
+
+  // 2) Simular Série B com times existentes (preservando jogadores)
+  // Primeiro, montamos os times B com base no que conhecemos
+  const timesBParaSimular: Record<string, Time> = {};
+  for (const nome of seriesBLista) {
+    if (todosTimesConhecidos[nome]) {
+      timesBParaSimular[nome] = JSON.parse(JSON.stringify(todosTimesConhecidos[nome]));
+    } else {
+      // Time novo na Série B, criar com banco
+      const prefs = getTimePrefsFor(nome, 'B');
+      timesBParaSimular[nome] = criarTime(nome, prefs.forcaGeral, prefs.relevancia, banco);
+    }
+  }
+
+  const resultadoB = simularSerieCompleta(seriesBLista, 'B', banco, timesBParaSimular);
+  let promovidos = resultadoB.promovidos.slice();
+
+  // 3) Simular Série C com times existentes
+  const timesCParaSimular: Record<string, Time> = {};
+  for (const nome of seriesCLista) {
+    if (todosTimesConhecidos[nome]) {
+      timesCParaSimular[nome] = JSON.parse(JSON.stringify(todosTimesConhecidos[nome]));
+    } else {
+      const prefs = getTimePrefsFor(nome, 'C');
+      timesCParaSimular[nome] = criarTime(nome, prefs.forcaGeral, prefs.relevancia, banco);
+    }
+  }
+
+  const resultadoC = simularSerieCompleta(seriesCLista, 'C', banco, timesCParaSimular);
+
+  // 4) Sincronizar bancos após simulações B e C
+  sincronizarBancoComTimes(timesBParaSimular, banco, currentYear);
+  sincronizarBancoComTimes(timesCParaSimular, banco, currentYear);
+
+  // 5) Trabalhar com a Série A: classificação, rebaixados, promovidos
+  const timesAAtuais = JSON.parse(JSON.stringify(timesAObj)) as Record<string, Time>;
+  const classificacao = gerarClassificacao(timesAAtuais);
+  const rebaixados = classificacao.slice(-4).map(t => t.nome);
+
+  // 6) Preservar times rebaixados com redução de overall (1-6 pontos)
+  // Guardamos os times rebaixados com seus jogadores para colocar na Série B
+  const timesRebaixados: Record<string, Time> = {};
+  for (const nome of rebaixados) {
+    if (timesAAtuais[nome]) {
+      const timeReb = JSON.parse(JSON.stringify(timesAAtuais[nome])) as Time;
+      for (const j of timeReb.jogadores) {
+        const reducao = 1 + randomInt(0, 5);
+        j.overall = Math.max(40, j.overall - reducao);
+        // Preservar histórico — só reduz overall
+        registrarJogadorNoBanco(j, banco);
+      }
+      timeReb.forca = calcularForcaTime(timeReb.jogadores);
+      timesRebaixados[nome] = timeReb;
+    }
+  }
+
+  // 7) Determinar promovidos válidos (não podem ser times que já estão na Série A)
+  const timesAposRebaixamento = Object.keys(timesAAtuais).filter(n => !rebaixados.includes(n));
+  const promovidosValidos: string[] = [];
+  for (const p of promovidos) {
+    if (!timesAposRebaixamento.includes(p)) promovidosValidos.push(p);
+    else console.warn('Promovido duplicado ignorado:', p);
+  }
+  if (promovidosValidos.length < 4) {
+    for (const candidato of (resultadoB.classificacao || []).map(c => c.nome)) {
+      if (!promovidosValidos.includes(candidato) && !timesAposRebaixamento.includes(candidato)) {
+        promovidosValidos.push(candidato);
+        if (promovidosValidos.length >= 4) break;
+      }
+    }
+  }
+  promovidos = promovidosValidos;
+
+  // 8) Remover rebaixados e adicionar promovidos na Série A
+  for (const nome of rebaixados) {
+    delete timesAAtuais[nome];
+  }
+
+  for (const nome of promovidos) {
+    // Buscar o time promovido nos times B que acabaram de ser simulados
+    const timeDaB = timesBParaSimular[nome];
+    if (timeDaB) {
+      // Reutilizar o time que estava na Série B, com boost de overall
+      const timeProm = JSON.parse(JSON.stringify(timeDaB)) as Time;
+      for (const j of timeProm.jogadores) {
+        const boost = 1 + randomInt(0, 4);
+        j.overall = Math.min(99, j.overall + boost);
+        registrarJogadorNoBanco(j, banco);
+      }
+      timeProm.forca = calcularForcaTime(timeProm.jogadores);
+      (timeProm as any)._relevancia = getTimePrefsFor(nome, 'A').relevancia;
+      timesAAtuais[nome] = timeProm;
+    } else if (todosTimesConhecidos[nome]) {
+      // Time conhecido mas não estava na B (caso raro)
+      const timeProm = JSON.parse(JSON.stringify(todosTimesConhecidos[nome])) as Time;
+      for (const j of timeProm.jogadores) {
+        const boost = 1 + randomInt(0, 4);
+        j.overall = Math.min(99, j.overall + boost);
+        registrarJogadorNoBanco(j, banco);
+      }
+      timeProm.forca = calcularForcaTime(timeProm.jogadores);
+      timesAAtuais[nome] = timeProm;
+    } else {
+      // Time completamente novo (nunca visto antes)
+      const prefs = getTimePrefsFor(nome, 'A');
+      timesAAtuais[nome] = criarTime(nome, prefs.forcaGeral, prefs.relevancia, banco);
+    }
+  }
+
+  // 9) Envelhecer todos os times da Série A (aposenta jogadores velhos, cria revelações)
+  envelhecerTimes(timesAAtuais, banco, currentYear + 1);
+
+  // 9b) Envelhecer tambem os times que estao na B e C (para que jogadores nao fiquem eternos)
+  // Precisamos dos times rebaixados e dos que ficaram na B/C
+  const timesParaEnvelhecerBC: Record<string, Time> = {};
+  for (const [nome, time] of Object.entries(timesRebaixados)) {
+    timesParaEnvelhecerBC[nome] = time;
+  }
+  // Times que ficaram na B (nao subiram)
+  for (const nome of seriesBLista) {
+    if (!promovidos.includes(nome) && todosTimesConhecidos[nome] && !timesParaEnvelhecerBC[nome]) {
+      timesParaEnvelhecerBC[nome] = JSON.parse(JSON.stringify(todosTimesConhecidos[nome]));
+    }
+  }
+  // Times que ficaram na C (nao subiram)
+  for (const nome of seriesCLista) {
+    if (!resultadoC.promovidos.includes(nome) && todosTimesConhecidos[nome] && !timesParaEnvelhecerBC[nome]) {
+      timesParaEnvelhecerBC[nome] = JSON.parse(JSON.stringify(todosTimesConhecidos[nome]));
+    }
+  }
+  envelhecerTimes(timesParaEnvelhecerBC, banco, currentYear + 1);
+
+  // 10) Resetar estatísticas da temporada para o novo ano
+  for (const nome in timesAAtuais) {
+    const t = timesAAtuais[nome];
+    t.vitorias = 0;
+    t.empates = 0;
+    t.derrotas = 0;
+    t.golsPro = 0;
+    t.golsContra = 0;
+    t.pontos = 0;
+    t.jogos = 0;
+    for (const j of t.jogadores) {
+      j.gols = 0;
+      j.assistencias = 0;
+      j.partidas = 0;
+      j.somaNotas = 0;
+      // Manter anosAtivo para controle de carreira
+      // j.anosAtivo = 0; — NÃO resetar anosAtivo, é contagem de carreira
+    }
+  }
+
+  // 11) Criar o novo estado da temporada
+  const timesLista = Object.keys(timesAAtuais);
+  const jogos = gerarRodadas(timesLista);
+  const novoState: EstadoTemporada = {
+    times: timesAAtuais,
+    jogos,
+    rodadaAtual: 0,
+    concluido: false,
+  };
+
+  // 12) Montar a nova Série B: remover promovidos, adicionar rebaixados (com seus jogadores)
+  const novaSeriesB: string[] = [];
+  for (const nome of seriesBLista) {
+    if (!promovidos.includes(nome)) {
+      novaSeriesB.push(nome);
+    }
+  }
+  for (const nome of rebaixados) {
+    if (!novaSeriesB.includes(nome)) {
+      novaSeriesB.push(nome);
+    }
+  }
+
+  // 12b) Montar a nova Série C: remover promovidos da C, adicionar rebaixados da B
+  const rebaixadosB = resultadoB.classificacao.slice(-4).map(t => t.nome);
+  const novaSeriesC: string[] = [];
+  for (const nome of seriesCLista) {
+    if (!resultadoC.promovidos.includes(nome)) {
+      novaSeriesC.push(nome);
+    }
+  }
+  for (const nome of rebaixadosB) {
+    if (!novaSeriesC.includes(nome)) {
+      novaSeriesC.push(nome);
+    }
+  }
+
+  // 12c) Atualizar _timesConhecidos: preservar times que estao na B e C (nao subiram pra A)
+  // Usar os times ja envelhecidos (passo 9b)
+  const novosTimesConhecidos: Record<string, Time> = {};
+  // Times que ficaram na B (nao promovidos)
+  for (const nome of seriesBLista) {
+    if (!promovidos.includes(nome) && timesParaEnvelhecerBC[nome]) {
+      novosTimesConhecidos[nome] = JSON.parse(JSON.stringify(timesParaEnvelhecerBC[nome]));
+    }
+  }
+  // Times rebaixados da A vao pra B (ja envelhecidos)
+  for (const [nome, time] of Object.entries(timesParaEnvelhecerBC)) {
+    if (rebaixados.includes(nome)) {
+      novosTimesConhecidos[nome] = JSON.parse(JSON.stringify(time));
+    }
+  }
+  // Times que ficaram na C (nao promovidos)
+  for (const nome of seriesCLista) {
+    if (!resultadoC.promovidos.includes(nome) && timesParaEnvelhecerBC[nome]) {
+      novosTimesConhecidos[nome] = JSON.parse(JSON.stringify(timesParaEnvelhecerBC[nome]));
+    }
+  }
+
+  // 14) Sincronizar banco final
+  sincronizarBancoComTimes(timesAAtuais, banco, currentYear + 1);
+
+  // 14b) Garantir que todos os times tenham timeId (atribuir novos IDs se necessario)
+  let proximoTimeId = gameState?._proximoTimeId ?? 1;
+  const todosOsTimes = { ...timesAAtuais, ...novosTimesConhecidos, ...timesRebaixados };
+  for (const nome in todosOsTimes) {
+    const t = todosOsTimes[nome];
+    if (!t.timeId || t.timeId === 0) {
+      t.timeId = proximoTimeId++;
+    } else if (t.timeId >= proximoTimeId) {
+      proximoTimeId = t.timeId + 1;
+    }
+  }
+  // Garantir que os times em timesAAtuais e novosTimesConhecidos tenham os IDs atualizados
+  for (const nome in timesAAtuais) {
+    if (todosOsTimes[nome]) timesAAtuais[nome].timeId = todosOsTimes[nome].timeId;
+  }
+  for (const nome in novosTimesConhecidos) {
+    if (todosOsTimes[nome]) novosTimesConhecidos[nome].timeId = todosOsTimes[nome].timeId;
+  }
+
+  // Se temos gameState, atualizar o banco global e times conhecidos
+  if (gameState) {
+    gameState._todosJogadores = banco;
+    gameState._timesConhecidos = novosTimesConhecidos;
+    gameState._proximoTimeId = proximoTimeId;
+  }
+  // 15) Preservar os resultados B e C com os times rebaixados no resultado
+  // Fazer deep copy dos estados completos para garantir persistência
+  const estadoBSalvo: EstadoTemporada = JSON.parse(JSON.stringify(resultadoB._estado || timesBParaSimular));
+  if (!estadoBSalvo._campeao && resultadoB.classificacao.length > 0) {
+    estadoBSalvo._campeao = resultadoB.classificacao[0].nome;
+  }
+  if (!estadoBSalvo._rebaixados) {
+    estadoBSalvo._rebaixados = resultadoB.rebaixados;
+  }
+  if (!estadoBSalvo._concluido) estadoBSalvo._concluido = true;
+  if (!estadoBSalvo.concluido) estadoBSalvo.concluido = true;
+  const estadoCSalvo: EstadoTemporada = JSON.parse(JSON.stringify(resultadoC._estado || timesCParaSimular));
+  if (!estadoCSalvo._campeao && resultadoC.classificacao && resultadoC.classificacao.length > 0) {
+    estadoCSalvo._campeao = resultadoC.classificacao[0].nome;
+  }
+  if (!estadoCSalvo._concluido) estadoCSalvo._concluido = true;
+  if (!estadoCSalvo.concluido) estadoCSalvo.concluido = true;
+
+  // Salvar nos históricos das séries B e C (sem golsInfo para economizar espaço)
+  if (gameState) {
+    if (!gameState._championshipsB) gameState._championshipsB = {};
+    gameState._championshipsB[String(currentYear)] = stripGolsInfo(estadoBSalvo);
+    if (!gameState._championshipsC) gameState._championshipsC = {};
+    gameState._championshipsC[String(currentYear)] = stripGolsInfo(estadoCSalvo);
+  }
+
+  const resultadoBComTimes = { ...resultadoB, _estado: estadoBSalvo };
+  const resultadoCComTimes = { ...resultadoC, _estado: estadoCSalvo };
+
+  const campeao = classificacao.length > 0 ? classificacao[0].nome : '';
+
+  return {
+    novoState,
+    novaSeriesB,
+    novaSeriesC,
+    rebaixados,
+    promovidos,
+    resultadoB: resultadoBComTimes,
+    resultadoC: resultadoCComTimes,
+    campeao,
+    rebaixadosB,
+    estadoB: estadoBSalvo,
+    estadoC: estadoCSalvo,
+  };
+}
+
+export function initGameState(prefs?: PrefsPorSerie): GameState {
+  if (prefs) setActivePrefs(prefs);
+
+  // Criar banco global de jogadores
+  const banco: Record<number, Jogador> = {};
+
+  const times = criarTimes(SERIES_DATA.A, 'A', banco, 1);
+  const jogos = gerarRodadas(SERIES_DATA.A);
+
+  // Calcular o próximo timeId disponivel
+  let proximoTimeId = 1;
+  for (const t of Object.values(times)) {
+    if (t.timeId >= proximoTimeId) proximoTimeId = t.timeId + 1;
+  }
+
+  // Registrar todos os jogadores no banco
+  sincronizarBancoComTimes(times, banco, 2026);
+
+  const novoState: EstadoTemporada = { times, jogos, rodadaAtual: 0, concluido: false };
+  const championships: Record<string, EstadoTemporada> = {};
+  championships['2026'] = JSON.parse(JSON.stringify(novoState));
+
+  return {
+    year: 2026,
+    state: novoState,
+    championships,
+    seriesB: SERIES_DATA.B.slice(),
+    seriesC: SERIES_DATA.C.slice(),
+    lastSeriesResults: null,
+    _campeoes: {},
+    _bolaDeOuroHistorico: [],
+    _selecoesHistorico: [],
+    _todosJogadores: banco,
+    _timesConhecidos: {},
+    _jogadorHistoricoClubes: [],
+    _proximoTimeId: proximoTimeId,
+    _estadoB: undefined,
+    _estadoC: undefined,
+    _championshipsB: {},
+    _championshipsC: {},
+  };
+}
+
+// ========== Médias / Notas dos Jogadores ==========
+
+export function getMediaJogador(j: Jogador): MediaJogador {
+  const partidas = j.partidas || 0;
+  const partidasHist = j.partidasHistorico || 0;
+  return {
+    temporada: partidas > 0 ? Math.round(((j.somaNotas || 0) / partidas) * 10) / 10 : 0,
+    carreira: partidasHist > 0 ? Math.round(((j.somaNotasHistorico || 0) / partidasHist) * 10) / 10 : 0,
+    porPartida: partidasHist > 0 ? Math.round(((j.somaNotasHistorico || 0) / partidasHist) * 10) / 10 : 0,
+  };
+}
+
+// ========== Bola de Ouro ==========
+
+function calcularNotaBolaDeOuro(
+  j: Jogador,
+  timeNome: string,
+  posicaoTime: number,
+  totalTimes: number,
+  _relevancia: number
+): number {
+  const media = getMediaJogador(j);
+  const notaMedia = media.temporada;
+  const bonusRelevancia = (_relevancia - 1) * 0.3;
+  const bonusPosicao = Math.max(0, (totalTimes - posicaoTime) / totalTimes * 2);
+  const bonusGols = j.gols * 0.15;
+  const bonusAssists = j.assistencias * 0.1;
+  const partidas = j.partidas || 1;
+  const bonusRegularidade = Math.min(1, (j.somaNotas || 0) / partidas / 5);
+
+  return Math.round((
+    notaMedia * 3 +
+    bonusRelevancia * 2 +
+    bonusPosicao * 2 +
+    bonusGols * 2 +
+    bonusAssists * 1 +
+    bonusRegularidade * 1
+  ) * 10) / 10;
+}
+
+export function calcularBolaDeOuro(state: EstadoTemporada): BolaDeOuroResult {
+  const classif = gerarClassificacao(state.times);
+  const totalTimes = classif.length;
+  const candidatos: BolaDeOuroEntry[] = [];
+  for (let pos = 0; pos < classif.length; pos++) {
+    const time = classif[pos];
+    const _relevancia = (time as any)._relevancia ?? 2;
+    for (const j of time.jogadores) {
+      if ((j.partidas || 0) < 10) continue;
+      const nota = calcularNotaBolaDeOuro(j, time.nome, pos + 1, totalTimes, _relevancia);
+      candidatos.push({ jogador: j.nome, id: j.id, time: time.nome, posicao: j.posicao, nota, gols: j.gols, assistencias: j.assistencias });
+    }
+  }
+  candidatos.sort((a, b) => b.nota - a.nota);
+  const top = candidatos.slice(0, 3);
+  return {
+    ouro: top[0] || { jogador: '-', id: undefined, time: '-', posicao: 'ATA', nota: 0, gols: 0, assistencias: 0 },
+    prata: top[1] || { jogador: '-', id: undefined, time: '-', posicao: 'ATA', nota: 0, gols: 0, assistencias: 0 },
+    bronze: top[2] || { jogador: '-', id: undefined, time: '-', posicao: 'ATA', nota: 0, gols: 0, assistencias: 0 },
+  };
+}
+
+// ========== Seleção da Temporada ==========
+
+export function calcularSelecaoTemporada(state: EstadoTemporada): SelecaoTemporada {
+  const classif = gerarClassificacao(state.times);
+  const totalTimes = classif.length;
+  const goleiros: BolaDeOuroEntry[] = [];
+  const lds: BolaDeOuroEntry[] = [];
+  const les: BolaDeOuroEntry[] = [];
+  const zags: BolaDeOuroEntry[] = [];
+  const volantes: BolaDeOuroEntry[] = [];
+  const meias: BolaDeOuroEntry[] = [];
+  const atacantes: BolaDeOuroEntry[] = [];
+  for (let pos = 0; pos < classif.length; pos++) {
+    const time = classif[pos];
+    const _relevancia = (time as any)._relevancia ?? 2;
+    for (const j of time.jogadores) {
+      if ((j.partidas || 0) < 10) continue;
+      const nota = calcularNotaBolaDeOuro(j, time.nome, pos + 1, totalTimes, _relevancia);
+      const entry: BolaDeOuroEntry = { jogador: j.nome, id: j.id, time: time.nome, posicao: j.posicao, nota, gols: j.gols, assistencias: j.assistencias };
+      if (j.posicao === 'GOL') goleiros.push(entry);
+      else if (j.posicao === 'LD') lds.push(entry);
+      else if (j.posicao === 'LE') les.push(entry);
+      else if (j.posicao === 'ZAG') zags.push(entry);
+      else if (j.posicao === 'VOL') volantes.push(entry);
+      else if (j.posicao === 'MEI') meias.push(entry);
+      else if (j.posicao === 'ATA') atacantes.push(entry);
+    }
+  }
+  const sortByNota = (a: BolaDeOuroEntry, b: BolaDeOuroEntry) => b.nota - a.nota;
+  goleiros.sort(sortByNota); lds.sort(sortByNota); les.sort(sortByNota); zags.sort(sortByNota); volantes.sort(sortByNota); meias.sort(sortByNota); atacantes.sort(sortByNota);
+  const toEntry = (e: BolaDeOuroEntry): SelecaoEntry => ({ jogador: e.jogador, id: e.id, time: e.time, posicao: e.posicao, nota: e.nota });
+  return {
+    goleiro: goleiros.length > 0 ? toEntry(goleiros[0]) : toEntry({ jogador: '-', time: '-', posicao: 'GOL', nota: 0, gols: 0, assistencias: 0 }),
+    laterais: [
+      lds.length > 0 ? toEntry(lds[0]) : toEntry({ jogador: '-', time: '-', posicao: 'LD', nota: 0, gols: 0, assistencias: 0 }),
+      les.length > 0 ? toEntry(les[0]) : toEntry({ jogador: '-', time: '-', posicao: 'LE', nota: 0, gols: 0, assistencias: 0 }),
+    ],
+    zag: zags.slice(0, 2).map(toEntry),
+    volantes: volantes.slice(0, 1).map(toEntry),
+    meias: meias.slice(0, 2).map(toEntry),
+    atacantes: atacantes.slice(0, 3).map(toEntry),
+  };
+}
+
+/** Gera premiações para o estado da temporada */
+export function gerarPremiacoes(state: EstadoTemporada): void {
+  state._bolaDeOuro = calcularBolaDeOuro(state);
+  state._selecao = calcularSelecaoTemporada(state);
+}
+
+// ========== Histórico de Premiações ==========
+
+export function getBolaDeOuroHistorico(game: GameState): BolaDeOuroHistorico[] {
+  return game._bolaDeOuroHistorico || [];
+}
+
+export function getSelecoesHistorico(game: GameState): SelecaoHistorico[] {
+  return game._selecoesHistorico || [];
+}
+
+// ========== Banco Global de Jogadores (APIs públicas) ==========
+
+/** Retorna todos os jogadores do banco global (ativos e aposentados) */
+export function getTodosJogadores(game: GameState): Jogador[] {
+  const banco = game._todosJogadores ?? {};
+  return Object.values(banco);
+}
+
+/** Retorna apenas jogadores aposentados */
+export function getJogadoresAposentados(game: GameState): Jogador[] {
+  const banco = game._todosJogadores ?? {};
+  return Object.values(banco).filter(j => j.aposentado);
+}
+
+/** Retorna apenas jogadores ativos (não aposentados) */
+export function getJogadoresAtivos(game: GameState): Jogador[] {
+  const banco = game._todosJogadores ?? {};
+  return Object.values(banco).filter(j => !j.aposentado);
+}
+
+/** Busca um jogador pelo ID no banco global */
+export function getJogadorPorId(game: GameState, id: number): Jogador | undefined {
+  const banco = game._todosJogadores ?? {};
+  return banco[id];
+}
+
+/** Busca jogadores por nome (parcial) no banco global */
+export function buscarJogadoresPorNome(game: GameState, nome: string): Jogador[] {
+  const banco = game._todosJogadores ?? {};
+  const termo = nome.toLowerCase();
+  return Object.values(banco).filter(j => j.nome.toLowerCase().includes(termo));
+}
+
+// ========== Rankings de Bola de Ouro ==========
+
+/**
+ * Tenta deduzir o ID de um jogador a partir do nome, usando o banco global.
+ * Se houver exatamente UM jogador com aquele nome no banco, retorna seu ID.
+ * Se houver múltiplos (homônimos), retorna undefined para evitar agrupamento incorreto.
+ */
+function deduzirIdPorNome(nome: string, banco: Record<number, Jogador>): number | undefined {
+  const encontrados = Object.values(banco).filter(j => j.nome === nome);
+  return encontrados.length === 1 ? encontrados[0].id : undefined;
+}
+
+export function calcularRankingBolaDeOuro(game: GameState): BdoRankingEntry[] {
+  const historico = getBolaDeOuroHistorico(game);
+  const banco = game._todosJogadores ?? {};
+  const jogadores: Record<string, { id?: number; ouros: number; pratas: number; bronzes: number }> = {};
+
+  for (const h of historico) {
+    // Para cada entry, tenta obter um ID (existente ou deduzido)
+    const idOuro = h.ouro.id ?? deduzirIdPorNome(h.ouro.jogador, banco);
+    const keyOuro = idOuro !== undefined ? `id:${idOuro}` : `nome:${h.ouro.jogador}`;
+    if (!jogadores[keyOuro]) jogadores[keyOuro] = { id: idOuro, ouros: 0, pratas: 0, bronzes: 0 };
+    jogadores[keyOuro].ouros++;
+
+    const idPrata = h.prata.id ?? deduzirIdPorNome(h.prata.jogador, banco);
+    const keyPrata = idPrata !== undefined ? `id:${idPrata}` : `nome:${h.prata.jogador}`;
+    if (!jogadores[keyPrata]) jogadores[keyPrata] = { id: idPrata, ouros: 0, pratas: 0, bronzes: 0 };
+    jogadores[keyPrata].pratas++;
+
+    const idBronze = h.bronze.id ?? deduzirIdPorNome(h.bronze.jogador, banco);
+    const keyBronze = idBronze !== undefined ? `id:${idBronze}` : `nome:${h.bronze.jogador}`;
+    if (!jogadores[keyBronze]) jogadores[keyBronze] = { id: idBronze, ouros: 0, pratas: 0, bronzes: 0 };
+    jogadores[keyBronze].bronzes++;
+  }
+
+  return Object.entries(jogadores)
+    .map(([key, data]) => ({
+      jogador: key.startsWith('id:') ? 
+        (game._todosJogadores?.[data.id!]?.nome || `Jogador #${data.id}`) : 
+        key.replace('nome:', ''),
+      id: data.id,
+      ouros: data.ouros,
+      pratas: data.pratas,
+      bronzes: data.bronzes,
+      totalPremios: data.ouros + data.pratas + data.bronzes,
+    }))
+    .sort((a, b) => {
+      if (b.ouros !== a.ouros) return b.ouros - a.ouros;
+      if (b.pratas !== a.pratas) return b.pratas - a.pratas;
+      if (b.bronzes !== a.bronzes) return b.bronzes - a.bronzes;
+      return b.totalPremios - a.totalPremios;
+    });
+}
+
+export function calcularGoatIndex(game: GameState): GoatRankingEntry[] {
+  const rankingBdo = calcularRankingBolaDeOuro(game);
+  const banco = game._todosJogadores ?? {};
+  const selecoes = getSelecoesHistorico(game);
+
+  const aparicoesSelecao: Record<string, number> = {};
+  for (const s of selecoes) {
+    const addEntry = (e: SelecaoEntry) => {
+      const key = e.id !== undefined ? `id:${e.id}` : e.jogador;
+      aparicoesSelecao[key] = (aparicoesSelecao[key] || 0) + 1;
+    };
+    if (s.selecao.goleiro) addEntry(s.selecao.goleiro);
+    s.selecao.zag?.forEach(addEntry);
+    s.selecao.laterais?.forEach(addEntry);
+    s.selecao.volantes?.forEach(addEntry);
+    s.selecao.meias?.forEach(addEntry);
+    s.selecao.atacantes?.forEach(addEntry);
+  }
+
+  const titulosTime: Record<string, number> = {};
+  const campeoes = getCampeoesJogo(game._campeoes);
+  for (const c of campeoes) {
+    const camp = game.championships[String(c.ano)];
+    if (camp?.times?.[c.campeao]) {
+      for (const j of camp.times[c.campeao].jogadores) {
+        const key = `id:${j.id}`;
+        titulosTime[key] = (titulosTime[key] || 0) + 1;
+      }
+    }
+  }
+
+  return rankingBdo.map(entry => {
+    const key = entry.id !== undefined ? `id:${entry.id}` : entry.jogador;
+    const jogador = entry.id !== undefined ? banco[entry.id] : undefined;
+
+    let mediaHistorica = 0;
+    if (jogador) {
+      const media = getMediaJogador(jogador);
+      mediaHistorica = media.carreira || media.porPartida || 0;
+    }
+
+    const gols = jogador?.golsHistorico || 0;
+    const assistencias = jogador?.assistenciasHistorico || 0;
+
+    const pesoOuro = 10;
+    const pesoPrata = 5;
+    const pesoBronze = 2.5;
+    const pesoMedia = 3;
+    const pesoGols = 0.5;
+    const pesoAssists = 0.3;
+    const pesoTitulos = 4;
+    const pesoSelecao = 2;
+
+    const goatIndex = Math.round((
+      entry.ouros * pesoOuro +
+      entry.pratas * pesoPrata +
+      entry.bronzes * pesoBronze +
+      mediaHistorica * pesoMedia +
+      gols * pesoGols +
+      assistencias * pesoAssists +
+      (titulosTime[key] || 0) * pesoTitulos +
+      (aparicoesSelecao[key] || 0) * pesoSelecao
+    ) * 10) / 10;
+
+    const result: GoatRankingEntry = {
+      jogador: entry.jogador,
+      id: entry.id,
+      ouros: entry.ouros,
+      pratas: entry.pratas,
+      bronzes: entry.bronzes,
+      totalPremios: entry.totalPremios,
+      goatIndex,
+      mediaHistorica: Math.round(mediaHistorica * 10) / 10,
+      gols,
+      assistencias,
+      titulos: titulosTime[key] || 0,
+      aparicoesSelecao: aparicoesSelecao[key] || 0,
+    };
+    return result;
+  }).sort((a, b) => b.goatIndex - a.goatIndex);
+}

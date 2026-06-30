@@ -1,0 +1,328 @@
+import { FormacaoInfo, Posicao, CampeaoHistorico } from '../types';
+
+export const SERIES_DATA = {
+  A: [
+    "Athletico-PR", "Atlético-MG", "Bahia", "Botafogo", "Bragantino",
+    "Chapecoense", "Corinthians", "Coritiba", "Cruzeiro", "Flamengo",
+    "Fluminense", "Grêmio", "Internacional", "Mirassol", "Palmeiras",
+    "Remo", "Santos", "São Paulo", "Vasco", "Vitória"
+  ],
+  B: [
+    "América-MG", "Athletic", "Atlético-GO", "Avaí", "Botafogo-SP",
+    "Ceará", "CRB", "Criciúma", "Cuiabá", "Fortaleza",
+    "Goiás", "Juventude", "Londrina", "Náutico", "Novorizontino",
+    "Operário-PR", "Ponte Preta", "São Bernardo", "Sport", "Vila Nova"
+  ],
+  C: [
+    "Amazonas", "Anápolis", "Barra-SC", "Botafogo-PB", "Brusque",
+    "Caxias", "Confiança", "Ferroviária", "Figueirense", "Floresta",
+    "Guarani", "Inter de Limeira", "Itabaiana", "Ituano",
+    "Maranhão", "Maringá", "Paysandu", "Santa Cruz", "Volta Redonda", "Ypiranga"
+  ]
+};
+
+export const FIRST_NAMES: string[] = [
+  "João", "José", "Antônio", "Francisco", "Carlos", "Luiz", "Paulo", "Pedro", "Miguel", "Lucas",
+  "Gabriel", "Mateus", "Rafael", "Felipe", "Bruno", "Eduardo", "Diego", "Thiago", "Marcos", "Alex",
+  "André", "Ricardo", "Rodrigo", "Marcelo", "Fabio", "Leandro", "Leonardo", "Willian", "Daniel", "Vinicius",
+  "Gustavo", "Fernando", "Roberto", "Jorge", "Márcio", "Cristiano", "Fábio", "Renato", "Sérgio", "Adriano",
+  "Alberto", "Alexandre", "Anderson", "Cláudio", "Douglas", "Edson", "Emerson", "Everton", "Guilherme", "Heitor",
+  "Henrique", "Hugo", "Igor", "João Pedro", "João Victor", "Júlio", "Luciano", "Luís", "Maurício", "Murilo",
+  "Nelson", "Otávio", "Pablo", "Ramon", "Ronaldo", "Samuel", "Sandro", "Sebastião", "Tales", "Ulisses",
+  "Valdir", "Valter", "Wagner", "Washington", "Yuri", "Allan", "Breno", "Caio", "César", "Danilo",
+  "Elton", "Flávio", "Gilberto", "Hélio", "Jonas", "Kelvin", "Luan", "Maicon", "Nathan", "Osvaldo",
+  "Rogério", "Saulo", "Tadeu", "Ubirajara", "Vanderlei", "Wesley", "Xavier", "Yago", "Zé", "Aldo"
+];
+
+export const LAST_NAMES: string[] = [
+  "Silva", "Santos", "Oliveira", "Souza", "Lima", "Pereira", "Costa", "Ferreira", "Rodrigues", "Almeida",
+  "Nascimento", "Araújo", "Ribeiro", "Carvalho", "Gomes", "Martins", "Barbosa", "Rocha", "Dias", "Moreira",
+  "Mendes", "Cavalcanti", "Teixeira", "Cardoso", "Correia", "Azevedo", "Freitas", "Castro", "Campos", "Viana",
+  "Melo", "Pinto", "Monteiro", "Borges", "Moura", "Fernandes", "Neves", "Vieira", "Barros", "Maia",
+  "Belo", "Farias", "Lopes", "Nogueira", "Pires", "Reis", "Sá", "Tavares", "Xavier", "Andrade",
+  "Brito", "Cunha", "Duarte", "Esteves", "Fonseca", "Guimarães", "Henriques", "Inácio", "Jardim", "Leão",
+  "Machado", "Neto", "Padilha", "Quaresma", "Ramalho", "Sampaio", "Teles", "Valente", "Zambrano", "Assis",
+  "Batista", "Coelho", "Dorneles", "Escobar", "Furtado", "Goulart", "Holanda", "Madeira", "Nunes", "Ornelas",
+  "Paiva", "Quadros", "Rangel", "Serra", "Trindade", "Vargas", "Aguiar", "Baptista", "Camargo", "Dantas",
+  "Evangelista", "Figueiredo", "Guerra", "Hermes", "Lacerda", "Marques", "Pedrosa", "Queiroz", "Castilho", "Vasconcelos"
+];
+
+export const FORMACOES: Record<string, FormacaoInfo> = {
+  "4-3-3": { nome: "4-3-3", posicoes: ["GOL", "LD", "ZAG", "ZAG", "LE", "VOL", "MEI", "MEI", "ATA", "ATA", "ATA"] as Posicao[] },
+  "4-4-2": { nome: "4-4-2", posicoes: ["GOL", "LD", "ZAG", "ZAG", "LE", "MEI", "VOL", "MEI", "MEI", "ATA", "ATA"] as Posicao[] },
+  "4-2-3-1": { nome: "4-2-3-1", posicoes: ["GOL", "LD", "ZAG", "ZAG", "LE", "VOL", "VOL", "MEI", "MEI", "MEI", "ATA"] as Posicao[] },
+  "3-5-2": { nome: "3-5-2", posicoes: ["GOL", "ZAG", "ZAG", "ZAG", "LD", "LE", "VOL", "MEI", "MEI", "ATA", "ATA"] as Posicao[] },
+  "4-5-1": { nome: "4-5-1", posicoes: ["GOL", "LD", "ZAG", "ZAG", "LE", "VOL", "MEI", "MEI", "MEI", "MEI", "ATA"] as Posicao[] },
+  "5-3-2": { nome: "5-3-2", posicoes: ["GOL", "LD", "ZAG", "ZAG", "ZAG", "LE", "VOL", "MEI", "MEI", "ATA", "ATA"] as Posicao[] },
+  "4-3-2-1": { nome: "4-3-2-1", posicoes: ["GOL", "LD", "ZAG", "ZAG", "LE", "VOL", "MEI", "MEI", "MEI", "MEI", "ATA"] as Posicao[] }
+};
+
+export const FORMACOES_LIST: string[] = Object.keys(FORMACOES);
+
+export const TIME_COLORS: Record<string, [string, string]> = {
+  "Athletico-PR": ["#d71920", "#000000"],
+  "Atlético-MG": ["#000000", "#ffffff"],
+  "Bahia": ["#1a3774", "#d71920"],
+  "Botafogo": ["#000000", "#ffffff"],
+  "Bragantino": ["#000000", "#ffffff"],
+  "Chapecoense": ["#1b7a2b", "#ffffff"],
+  "Corinthians": ["#000000", "#ffffff"],
+  "Coritiba": ["#0f5c1f", "#ffffff"],
+  "Cruzeiro": ["#003da5", "#ffffff"],
+  "Flamengo": ["#d71920", "#000000"],
+  "Fluminense": ["#8b0000", "#003366"],
+  "Grêmio": ["#005da6", "#ffffff"],
+  "Internacional": ["#d71920", "#ffffff"],
+  "Mirassol": ["#006633", "#ffffff"],
+  "Palmeiras": ["#005a32", "#ffffff"],
+  "Remo": ["#003da5", "#ffffff"],
+  "Santos": ["#000000", "#ffffff"],
+  "São Paulo": ["#d71920", "#000000"],
+  "Vasco": ["#000000", "#ffffff"],
+  "Vitória": ["#d71920", "#000000"],
+  "América-MG": ["#006633", "#ffffff"],
+  "Athletic": ["#000000", "#00a650"],
+  "Atlético-GO": ["#d71920", "#000000"],
+  "Avaí": ["#0066cc", "#ffffff"],
+  "Botafogo-SP": ["#000000", "#d71920"],
+  "Ceará": ["#000000", "#ffffff"],
+  "CRB": ["#d71920", "#ffffff"],
+  "Criciúma": ["#ffcc00", "#000000"],
+  "Cuiabá": ["#006633", "#ffcc00"],
+  "Fortaleza": ["#003da5", "#d71920"],
+  "Goiás": ["#005a32", "#ffffff"],
+  "Juventude": ["#005a32", "#ffffff"],
+  "Londrina": ["#003366", "#ffcc00"],
+  "Náutico": ["#d71920", "#ffffff"],
+  "Novorizontino": ["#ff6600", "#ffffff"],
+  "Operário-PR": ["#000000", "#d71920"],
+  "Ponte Preta": ["#000000", "#ffffff"],
+  "São Bernardo": ["#003da5", "#ffffff"],
+  "Sport": ["#d71920", "#000000"],
+  "Vila Nova": ["#d71920", "#ffffff"],
+  "Amazonas": ["#006633", "#ffcc00"],
+  "Anápolis": ["#0066cc", "#ffffff"],
+  "Barra-SC": ["#003da5", "#ffffff"],
+  "Botafogo-PB": ["#000000", "#d71920"],
+  "Brusque": ["#006600", "#ffffff"],
+  "Caxias": ["#005a32", "#ffffff"],
+  "Confiança": ["#d71920", "#ffffff"],
+  "Ferroviária": ["#d71920", "#ffffff"],
+  "Figueirense": ["#000000", "#ffffff"],
+  "Floresta": ["#006633", "#ffffff"],
+  "Guarani": ["#005a32", "#ffffff"],
+  "Inter de Limeira": ["#000000", "#ffffff"],
+  "Itabaiana": ["#d71920", "#ffffff"],
+  "Ituano": ["#d71920", "#000000"],
+  "Maranhão": ["#006633", "#ffffff"],
+  "Maringá": ["#d71920", "#ffffff"],
+  "Paysandu": ["#003da5", "#ffffff"],
+  "Santa Cruz": ["#d71920", "#000000"],
+  "Volta Redonda": ["#ff6600", "#ffffff"],
+  "Ypiranga": ["#003da5", "#ffffff"]
+};
+
+const ALIAS_MAP: Record<string, string> = {
+  "Athletico-PR": "Athletico-PR",
+  "Atlético-MG": "Atlético-MG",
+  "Atlético-Mineiro": "Atlético-MG",
+  "Atlético Paranaense": "Athletico-PR",
+  "Bahia": "Bahia",
+  "Botafogo": "Botafogo",
+  "Bragantino": "Bragantino",
+  "Corinthians": "Corinthians",
+  "Coritiba": "Coritiba",
+  "Cruzeiro": "Cruzeiro",
+  "Flamengo": "Flamengo",
+  "Fluminense": "Fluminense",
+  "Grêmio": "Grêmio",
+  "Gremio": "Grêmio",
+  "Internacional": "Internacional",
+  "Palmeiras": "Palmeiras",
+  "Santos": "Santos",
+  "São Paulo": "São Paulo",
+  "Sao Paulo": "São Paulo",
+  "Vasco": "Vasco",
+  "Vasco da Gama": "Vasco",
+  "Vitória": "Vitória",
+  "Vitoria": "Vitória",
+  "Guarani": "Guarani",
+  "Goiás": "Goiás",
+  "Goias": "Goiás",
+  "Sport": "Sport",
+  "Sport Recife": "Sport",
+  "Náutico": "Náutico",
+  "Nautico": "Náutico",
+  "Portuguesa": "Ponte Preta",
+  "Bangu": "Botafogo",
+  "São Caetano": "São Bernardo",
+  "Sao Caetano": "São Bernardo",
+  "Operário-MS": "Operário-PR",
+  "Operario-MS": "Operário-PR",
+  "Brasil de Pelotas": "Remo",
+  "Rio Branco-ES": "Remo"
+};
+
+export function getTimeColors(nome: string): [string, string] {
+  if (TIME_COLORS[nome]) return TIME_COLORS[nome];
+  const mapped = ALIAS_MAP[nome];
+  if (mapped && TIME_COLORS[mapped]) return TIME_COLORS[mapped];
+  return ["#333333", "#ffffff"];
+}
+
+export const POSICAO_CORES: Record<string, string> = {
+  GOL: '#ffd700', ZAG: '#2979ff', LD: '#448aff', LE: '#448aff',
+  VOL: '#ff9100', MEI: '#00e676', ATA: '#ff1744'
+};
+
+export const LINHA_CAMPOS = {
+  gol: { pos: ['GOL'] as Posicao[], cor: '#ffd700', rotulo: 'GOLEIRO' },
+  def: { pos: ['LD', 'ZAG', 'LE'] as Posicao[], cor: '#2979ff', rotulo: 'DEFESA' },
+  mei: { pos: ['VOL', 'MEI'] as Posicao[], cor: '#00e676', rotulo: 'MEIO' },
+  atk: { pos: ['ATA'] as Posicao[], cor: '#ff1744', rotulo: 'ATAQUE' }
+};
+
+export const CAMPEOES_HISTORICOS: CampeaoHistorico[] = [
+  { ano: 1937, campeao: "Atlético-MG", vice: "Fluminense", terceiro: "Rio Branco-ES" },
+  { ano: 1959, campeao: "Bahia", vice: "Santos", terceiro: "Grêmio" },
+  { ano: 1960, campeao: "Palmeiras", vice: "Fortaleza", terceiro: "Fluminense" },
+  { ano: 1961, campeao: "Santos", vice: "Bahia", terceiro: "América-MG" },
+  { ano: 1962, campeao: "Santos", vice: "Botafogo", terceiro: "Internacional" },
+  { ano: 1963, campeao: "Santos", vice: "Bahia", terceiro: "Grêmio" },
+  { ano: 1964, campeao: "Santos", vice: "Flamengo", terceiro: "Ceará" },
+  { ano: 1965, campeao: "Santos", vice: "Vasco", terceiro: "Náutico" },
+  { ano: 1966, campeao: "Cruzeiro", vice: "Santos", terceiro: "Náutico" },
+  { ano: 1967, campeao: "Palmeiras", vice: "Internacional", terceiro: "Corinthians" },
+  { ano: 1967, campeao: "Palmeiras", vice: "Náutico", terceiro: "Grêmio" },
+  { ano: 1968, campeao: "Botafogo", vice: "Fortaleza", terceiro: "Cruzeiro" },
+  { ano: 1968, campeao: "Santos", vice: "Internacional", terceiro: "Vasco" },
+  { ano: 1969, campeao: "Palmeiras", vice: "Cruzeiro", terceiro: "Corinthians" },
+  { ano: 1970, campeao: "Fluminense", vice: "Palmeiras", terceiro: "Atlético-MG" },
+  { ano: 1971, campeao: "Atlético-MG", vice: "São Paulo", terceiro: "Botafogo" },
+  { ano: 1972, campeao: "Palmeiras", vice: "Botafogo", terceiro: "Internacional" },
+  { ano: 1973, campeao: "Palmeiras", vice: "São Paulo", terceiro: "Cruzeiro" },
+  { ano: 1974, campeao: "Vasco", vice: "Cruzeiro", terceiro: "Santos" },
+  { ano: 1975, campeao: "Internacional", vice: "Cruzeiro", terceiro: "Fluminense" },
+  { ano: 1976, campeao: "Internacional", vice: "Corinthians", terceiro: "Atlético-MG" },
+  { ano: 1977, campeao: "São Paulo", vice: "Atlético-MG", terceiro: "Operário-MS" },
+  { ano: 1978, campeao: "Guarani", vice: "Palmeiras", terceiro: "Internacional" },
+  { ano: 1979, campeao: "Internacional", vice: "Vasco", terceiro: "Coritiba" },
+  { ano: 1980, campeao: "Flamengo", vice: "Atlético-MG", terceiro: "Internacional" },
+  { ano: 1981, campeao: "Grêmio", vice: "São Paulo", terceiro: "Ponte Preta" },
+  { ano: 1982, campeao: "Flamengo", vice: "Grêmio", terceiro: "Guarani" },
+  { ano: 1983, campeao: "Flamengo", vice: "Santos", terceiro: "Atlético-MG" },
+  { ano: 1984, campeao: "Fluminense", vice: "Vasco", terceiro: "Grêmio" },
+  { ano: 1985, campeao: "Coritiba", vice: "Bangu", terceiro: "Brasil de Pelotas" },
+  { ano: 1986, campeao: "São Paulo", vice: "Guarani", terceiro: "Atlético-MG" },
+  { ano: 1987, campeao: "Sport", vice: "Guarani", terceiro: "Flamengo" },
+  { ano: 1988, campeao: "Bahia", vice: "Internacional", terceiro: "Fluminense" },
+  { ano: 1989, campeao: "Vasco", vice: "São Paulo", terceiro: "Cruzeiro" },
+  { ano: 1990, campeao: "Corinthians", vice: "São Paulo", terceiro: "Grêmio" },
+  { ano: 1991, campeao: "São Paulo", vice: "Bragantino", terceiro: "Fluminense" },
+  { ano: 1992, campeao: "Flamengo", vice: "Botafogo", terceiro: "Vasco" },
+  { ano: 1993, campeao: "Palmeiras", vice: "Vitória", terceiro: "Corinthians" },
+  { ano: 1994, campeao: "Palmeiras", vice: "Corinthians", terceiro: "Guarani" },
+  { ano: 1995, campeao: "Botafogo", vice: "Santos", terceiro: "Cruzeiro" },
+  { ano: 1996, campeao: "Grêmio", vice: "Portuguesa", terceiro: "Atlético-MG" },
+  { ano: 1997, campeao: "Vasco", vice: "Palmeiras", terceiro: "Internacional" },
+  { ano: 1998, campeao: "Corinthians", vice: "Cruzeiro", terceiro: "Santos" },
+  { ano: 1999, campeao: "Corinthians", vice: "Atlético-MG", terceiro: "Vitória" },
+  { ano: 2000, campeao: "Vasco", vice: "São Caetano", terceiro: "Cruzeiro" },
+  { ano: 2001, campeao: "Athletico-PR", vice: "São Caetano", terceiro: "Fluminense" },
+  { ano: 2002, campeao: "Santos", vice: "Corinthians", terceiro: "Grêmio" },
+  { ano: 2003, campeao: "Cruzeiro", vice: "Santos", terceiro: "São Paulo" },
+  { ano: 2004, campeao: "Santos", vice: "Athletico-PR", terceiro: "São Paulo" },
+  { ano: 2005, campeao: "Corinthians", vice: "Internacional", terceiro: "Goiás" },
+  { ano: 2006, campeao: "São Paulo", vice: "Internacional", terceiro: "Grêmio" },
+  { ano: 2007, campeao: "São Paulo", vice: "Santos", terceiro: "Flamengo" },
+  { ano: 2008, campeao: "São Paulo", vice: "Grêmio", terceiro: "Cruzeiro" },
+  { ano: 2009, campeao: "Flamengo", vice: "Internacional", terceiro: "São Paulo" },
+  { ano: 2010, campeao: "Fluminense", vice: "Cruzeiro", terceiro: "Corinthians" },
+  { ano: 2011, campeao: "Corinthians", vice: "Vasco", terceiro: "Fluminense" },
+  { ano: 2012, campeao: "Fluminense", vice: "Atlético-MG", terceiro: "Grêmio" },
+  { ano: 2013, campeao: "Cruzeiro", vice: "Grêmio", terceiro: "Athletico-PR" },
+  { ano: 2014, campeao: "Cruzeiro", vice: "São Paulo", terceiro: "Internacional" },
+  { ano: 2015, campeao: "Corinthians", vice: "Atlético-MG", terceiro: "Grêmio" },
+  { ano: 2016, campeao: "Palmeiras", vice: "Santos", terceiro: "Flamengo" },
+  { ano: 2017, campeao: "Corinthians", vice: "Palmeiras", terceiro: "Santos" },
+  { ano: 2018, campeao: "Palmeiras", vice: "Flamengo", terceiro: "Internacional" },
+  { ano: 2019, campeao: "Flamengo", vice: "Santos", terceiro: "Palmeiras" },
+  { ano: 2020, campeao: "Flamengo", vice: "Internacional", terceiro: "Atlético-MG" },
+  { ano: 2021, campeao: "Atlético-MG", vice: "Flamengo", terceiro: "Palmeiras" },
+  { ano: 2022, campeao: "Palmeiras", vice: "Internacional", terceiro: "Fluminense" },
+  { ano: 2023, campeao: "Palmeiras", vice: "Grêmio", terceiro: "Atlético-MG" },
+  { ano: 2024, campeao: "Botafogo", vice: "Palmeiras", terceiro: "Flamengo" },
+  { ano: 2025, campeao: "Flamengo", vice: "Palmeiras", terceiro: "Cruzeiro" }
+];
+
+// ========== Preferências Default de Força dos Times ==========
+export const DEFAULT_TIME_PREFS: Record<string, { forcaGeral: number; relevancia: number }> = {
+  "Flamengo":      { forcaGeral: 86, relevancia: 5 },
+  "Palmeiras":     { forcaGeral: 88, relevancia: 5 },
+  "Corinthians":   { forcaGeral: 78, relevancia: 5 },
+  "São Paulo":     { forcaGeral: 80, relevancia: 5 },
+  "Santos":        { forcaGeral: 75, relevancia: 5 },
+  "Cruzeiro":      { forcaGeral: 78, relevancia: 4 },
+  "Grêmio":        { forcaGeral: 82, relevancia: 4 },
+  "Internacional": { forcaGeral: 81, relevancia: 4 },
+  "Botafogo":      { forcaGeral: 85, relevancia: 4 },
+  "Atlético-MG":   { forcaGeral: 83, relevancia: 4 },
+  "Fluminense":    { forcaGeral: 77, relevancia: 4 },
+  "Vasco":         { forcaGeral: 72, relevancia: 4 },
+  "Bahia":         { forcaGeral: 76, relevancia: 3 },
+  "Athletico-PR":  { forcaGeral: 78, relevancia: 3 },
+  "Bragantino":    { forcaGeral: 77, relevancia: 3 },
+  "Fortaleza":     { forcaGeral: 76, relevancia: 3 },
+  "Vitória":       { forcaGeral: 70, relevancia: 3 },
+  "Ceará":         { forcaGeral: 71, relevancia: 3 },
+  "Juventude":     { forcaGeral: 69, relevancia: 2 },
+  "Cuiabá":        { forcaGeral: 68, relevancia: 2 },
+  "Coritiba":      { forcaGeral: 70, relevancia: 3 },
+  "Goiás":         { forcaGeral: 69, relevancia: 3 },
+  "Sport":         { forcaGeral: 70, relevancia: 3 },
+  "Chapecoense":   { forcaGeral: 67, relevancia: 2 },
+  "Mirassol":      { forcaGeral: 66, relevancia: 1 },
+  "Remo":          { forcaGeral: 65, relevancia: 2 },
+  "América-MG":    { forcaGeral: 68, relevancia: 2 },
+  "Atlético-GO":   { forcaGeral: 67, relevancia: 2 },
+  "Avaí":          { forcaGeral: 66, relevancia: 2 },
+  "Criciúma":      { forcaGeral: 67, relevancia: 2 },
+  "Vila Nova":     { forcaGeral: 64, relevancia: 1 },
+  "Ponte Preta":   { forcaGeral: 65, relevancia: 2 },
+  "Novorizontino": { forcaGeral: 66, relevancia: 1 },
+  "Operário-PR":   { forcaGeral: 63, relevancia: 1 },
+  "Londrina":      { forcaGeral: 64, relevancia: 2 },
+  "Náutico":       { forcaGeral: 65, relevancia: 2 },
+  "Botafogo-SP":   { forcaGeral: 64, relevancia: 1 },
+  "São Bernardo":  { forcaGeral: 63, relevancia: 1 },
+  "Athletic":      { forcaGeral: 62, relevancia: 1 },
+  "CRB":           { forcaGeral: 64, relevancia: 2 },
+  "Amazonas":      { forcaGeral: 62, relevancia: 1 },
+  "Anápolis":      { forcaGeral: 58, relevancia: 1 },
+  "Barra-SC":      { forcaGeral: 57, relevancia: 1 },
+  "Botafogo-PB":   { forcaGeral: 61, relevancia: 2 },
+  "Brusque":       { forcaGeral: 60, relevancia: 1 },
+  "Caxias":        { forcaGeral: 62, relevancia: 2 },
+  "Confiança":     { forcaGeral: 60, relevancia: 1 },
+  "Ferroviária":   { forcaGeral: 61, relevancia: 2 },
+  "Figueirense":   { forcaGeral: 63, relevancia: 2 },
+  "Floresta":      { forcaGeral: 58, relevancia: 1 },
+  "Guarani":       { forcaGeral: 65, relevancia: 3 },
+  "Inter de Limeira": { forcaGeral: 59, relevancia: 1 },
+  "Itabaiana":     { forcaGeral: 57, relevancia: 1 },
+  "Ituano":        { forcaGeral: 62, relevancia: 1 },
+  "Maranhão":      { forcaGeral: 58, relevancia: 1 },
+  "Maringá":       { forcaGeral: 60, relevancia: 1 },
+  "Paysandu":      { forcaGeral: 63, relevancia: 2 },
+  "Santa Cruz":    { forcaGeral: 62, relevancia: 2 },
+  "Volta Redonda": { forcaGeral: 61, relevancia: 1 },
+  "Ypiranga":      { forcaGeral: 60, relevancia: 1 },
+};
+
+export function getDefaultPrefs(): { forcaGeral: number; relevancia: number } {
+  return { forcaGeral: 65, relevancia: 2 };
+}
+
+export function getTimePref(nome: string): { forcaGeral: number; relevancia: number } {
+  return DEFAULT_TIME_PREFS[nome] || getDefaultPrefs();
+}

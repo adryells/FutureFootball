@@ -1,0 +1,216 @@
+.recordes-nav { display: flex; gap: 3px; flex-wrap: wrap; }
+.recordes-btn { background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; transition: all 0.2s; }
+.recordes-btn:hover { background: var(--bg-table); color: var(--text); }
+.recordes-btn.active { background: var(--accent2); color: #fff; border-color: var(--accent2); }
+.rec-subnav { display: flex; gap: 4px; margin-bottom: 6px; flex-wrap: wrap; }
+.rec-sub { background: var(--bg-table); border: 1px solid var(--border); color: var(--text-dim); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; }
+.rec-sub.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+/* === Bola de Ouro Histórico === */
+.bdo-historico {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bdo-ano-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.bdo-ano-titulo {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--gold);
+  margin-bottom: 4px;
+}
+
+.bdo-ano-podium {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.bdo-ano-entry {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  background: rgba(255,255,255,0.02);
+}
+
+.bdo-ano-entry.ouro { border-left: 2px solid #ffd700; }
+.bdo-ano-entry.prata { border-left: 2px solid #c0c0c0; }
+.bdo-ano-entry.bronze { border-left: 2px solid #cd7f32; }
+
+.bdo-ano-medalha {
+  min-width: 18px;
+  font-size: 0.8rem;
+}
+
+.bdo-ano-jogador {
+  font-weight: 600;
+  flex: 1;
+  color: var(--text);
+}
+
+.bdo-ano-time {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--text-dim);
+  font-size: 0.65rem;
+  min-width: 80px;
+}
+
+.bdo-ano-nota {
+  font-weight: 700;
+  color: var(--gold);
+  min-width: 28px;
+  text-align: right;
+}
+
+/* === Seleção da Temporada - Escalação Vertical === */
+.sel-historico {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sel-ano-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.sel-ano-titulo {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 10px;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+/* Container principal da escalação */
+.sel-escalacao {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Cada linha (GOL, ZAG, etc) */
+.sel-linha {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+/* Cartão de cada jogador */
+.sel-jogador-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.035);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+  padding: 5px 8px;
+  flex: 1;
+  max-width: 260px;
+  min-width: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.sel-jogador-card:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.12);
+}
+
+/* Badge de posição com cores */
+.sel-pos-badge {
+  font-size: 0.55rem;
+  font-weight: 800;
+  padding: 3px 5px;
+  border-radius: 4px;
+  min-width: 28px;
+  text-align: center;
+  letter-spacing: 0.3px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.sel-pos-badge.gol { background: #f59e0b; }
+.sel-pos-badge.zag { background: #3b82f6; }
+.sel-pos-badge.lat { background: #8b5cf6; }
+.sel-pos-badge.vol { background: #10b981; }
+.sel-pos-badge.mei { background: #06b6d4; }
+.sel-pos-badge.ata { background: #ef4444; }
+
+/* Informações do jogador */
+.sel-jogador-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.sel-jogador-info strong {
+  font-size: 0.72rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.sel-time-info {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Nota */
+.sel-nota {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--gold);
+  flex-shrink: 0;
+  min-width: 26px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Responsivo para telas menores */
+@media (max-width: 600px) {
+  .sel-linha {
+    flex-wrap: wrap;
+  }
+  .sel-jogador-card {
+    max-width: 100%;
+    min-width: 120px;
+    flex: 1 1 45%;
+  }
+  .sel-linha.gol .sel-jogador-card {
+    flex: 0 1 200px;
+  }
+}
+
+.clickable {
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.clickable:hover {
+  color: var(--accent) !important;
+  text-decoration: underline;
+}
